@@ -1,3 +1,0 @@
-#/eos/cms/store/user/yofeng/DeepMETTrainingFile/myNanoProdMc2016_NANO_DY_2_Skim.h5
-#/eos/cms/store/user/yofeng/DeepMETTrainingFile/myNanoProdMc2016_NANO_ttbar_1_Skim.h5
-/eos/cms/store/user/yofeng/DeepMETTrainingFile/myNanoProdMc2016_NANO_ttbar_2_Skim.h5
