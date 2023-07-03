@@ -1,82 +1,101 @@
-import numpy as np
+import lz4.frame
+import cloudpickle
+import json
+import os.path as osp
+import os
+import shutil
 
-def read_input(inputfile):
-    import h5py
-    import os
-    list_input = open("%s"%inputfile)
-    nfiles = 0
-    for line in list_input:
-        fname = line.rstrip()
-        if fname.startswith('#'):
-            continue
-        if not os.path.getsize(fname):
-            continue
-        print("read file", fname)
-        h5f = h5py.File( fname, 'r')
-        if nfiles == 0:
-           X = h5f['X'][:]
-           Y = h5f['Y'][:]
+import torch
+
+class RunningAverage():
+    """A simple class that maintains the running average of a quantity
     
-        else:
-           X = np.concatenate((X, h5f['X']), axis=0)
-           Y = np.concatenate((Y, h5f['Y']), axis=0)
-        h5f.close()
-        nfiles += 1
+    Example:
+    ```
+    loss_avg = RunningAverage()
+    loss_avg.update(2)
+    loss_avg.update(4)
+    loss_avg() = 3
+    ```
+    """
+    def __init__(self):
+        self.steps = 0
+        self.total = 0
     
-    print("finish reading files")
-    return X, Y
+    def update(self, val):
+        self.total += val
+        self.steps += 1
+    
+    def __call__(self):
+        return self.total/float(self.steps)
 
-def preProcessing(X, EVT=None):
-    """ pre-processing input """
-    norm = 50.0
+def load(filename):
+    '''Load a coffea file from disk
+    '''
+    with lz4.frame.open(filename) as fin:
+        output = cloudpickle.load(fin)
+    return output
 
-    dxy = X[:,:,5:6]
-    dz  = X[:,:,6:7].clip(-100, 100)
-    eta = X[:,:,3:4]
-    mass = X[:,:,8:9]
-    pt = X[:,:,0:1] / norm
-    puppi = X[:,:,7:8]
-    px = X[:,:,1:2] / norm
-    py = X[:,:,2:3] / norm
 
-    # remove outliers
-    pt[ np.where(np.abs(pt>200)) ] = 0.
-    px[ np.where(np.abs(px>200)) ] = 0.
-    py[ np.where(np.abs(py>200)) ] = 0.
+def save(output, filename):
+    '''Save a coffea object or collection thereof to disk
+    This function can accept any picklable object.  Suggested suffix: ``.coffea``
+    '''
+    with lz4.frame.open(filename, 'wb') as fout:
+        thepickle = cloudpickle.dumps(output)
+        fout.write(thepickle)
 
-    if EVT is not None:
-        # environment variables
-        evt = EVT[:,0:4]
-        evt_expanded = np.expand_dims(evt, axis=1)
-        evt_expanded = np.repeat(evt_expanded, X.shape[1], axis=1)
-        # px py has to be in the last two columns
-        inputs = np.concatenate((dxy, dz, eta, mass, pt, puppi, evt_expanded, px, py), axis=2)
+def save_dict_to_json(d, json_path):
+    """Saves dict of floats in json file
+    Args:
+        d: (dict) of float-castable values (np.float, int, float, etc.)
+        json_path: (string) path to json file
+    """
+    with open(json_path, 'w') as f:
+        # We need to convert the values to float for json (it doesn't accept np.array, np.float, )
+        d = {k: float(v) for k, v in d.items()}
+        json.dump(d, f, indent=4)
+
+def save_checkpoint(state, is_best, checkpoint):
+    """Saves model and training parameters at checkpoint + 'last.pth.tar'. If is_best==True, also saves
+    checkpoint + 'best.pth.tar'
+    Args:
+        state: (dict) contains model's state_dict, may contain other keys such as epoch, optimizer state_dict
+        is_best: (bool) True if it is the best model seen till now
+        checkpoint: (string) folder where parameters are to be saved
+    """
+    #ckpt = 'ckpt_{0}.pth.tar'.format(state['epoch'])
+    #filepath = osp.join(checkpoint, ckpt)
+    filepath = osp.join(checkpoint, 'last.pth.tar')
+    if is_best:
+        filepath = osp.join(checkpoint, 'best.pth.tar')
+    if not os.path.exists(checkpoint):
+        print("Checkpoint Directory does not exist! Making directory {}".format(checkpoint))
+        os.mkdir(checkpoint)
     else:
-        inputs = np.concatenate((dxy, dz, eta, mass, pt, puppi, px, py), axis=2)
+        print("Checkpoint Directory exists! ")
+    torch.save(state, filepath)
+    #if is_best:
+    #    shutil.copyfile(filepath, osp.join(checkpoint, 'best.pth.tar'))
 
-    inputs_cat0 = X[:,:,11:12] # encoded PF pdgId
-    inputs_cat1 = X[:,:,12:13] # encoded PF charge
-    inputs_cat2 = X[:,:,13:14] # encoded PF fromPV
 
-    return inputs, inputs_cat0, inputs_cat1, inputs_cat2
+def load_checkpoint(checkpoint, model, optimizer=None, scheduler=None):
+    """Loads model parameters (state_dict) from file_path. If optimizer is provided, loads state_dict of
+    optimizer assuming it is present in checkpoint.
+    Args:
+        checkpoint: (string) filename which needs to be loaded
+        model: (torch.nn.Module) model for which the parameters are loaded
+        optimizer: (torch.optim) optional: resume optimizer from checkpoint
+    """
+    if not os.path.exists(checkpoint):
+        raise("File doesn't exist {}".format(checkpoint))
+    checkpoint = torch.load(checkpoint)
+    model.load_state_dict(checkpoint['state_dict'])
 
-def plot_history(history, path):
-    import pandas as pd
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    mpl.use('Agg')
+    if optimizer:
+        optimizer.load_state_dict(checkpoint['optim_dict'])
 
-    hist = pd.DataFrame(history.history)
-    hist['epoch'] = history.epoch
+    if scheduler:
+        scheduler.load_state_dict(checkpoint['sched_dict'])
 
-    plt.figure()
-    plt.xlabel('Epoch')
-    plt.ylabel('Mean Squared Error')
-    plt.plot(hist['epoch'], hist['mean_squared_error'],
-             label='Train Error')
-    plt.plot(hist['epoch'], hist['val_mean_squared_error'],
-             label='Val Error')
-    plt.ylim([0.00001, 20])
-    plt.yscale('log')
-    plt.legend()
-    plt.savefig(path+'/history.pdf', bbox_inches='tight')
+    return checkpoint
