@@ -21,6 +21,16 @@ import warnings
 warnings.simplefilter('ignore')
 from time import strftime, gmtime
 
+'''
+
+Change from DeepMETv2
+
+1. Change x_cont, x_cat, etaphi in train() in accordance with the change of training inputs 
+2. Add n_features_cont, n_features_cat to keep track of these numbers here and there, i.e. when building a model these numbers go into arguments
+
+'''
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--restore_file', default=None,
                     help="Optional, name of the file in --model_dir containing weights to reload before \
@@ -30,6 +40,8 @@ parser.add_argument('--data', default='data',
 parser.add_argument('--ckpts', default='ckpts',
                     help="Name of the ckpts folder")
 
+n_features_cont = 6
+n_features_cat = 2
 
 def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
     model.train()
@@ -39,11 +51,14 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
         for data in dataloader:
             optimizer.zero_grad()
             data = data.to(device)
-            x_cont = data.x[:,:8] #include puppi
-            #x_cont = data.x[:,:7] #remove puppi
-            x_cat = data.x[:,8:].long()
-            phi = torch.atan2(data.x[:,1], data.x[:,0])
-            etaphi = torch.cat([data.x[:,3][:,None], phi[:,None]], dim=1)        
+
+            x_cont = data.x[:,:n_features_cont]       # include puppi
+            #x_cont = data.x[:,:(n_features_cont-1)]  # remove puppi
+            x_cat = data.x[:,n_features_cont:].long()
+
+            #phi = torch.atan2(data.x[:,2], data.x[:,1])   # atan2(py, px)
+            etaphi = torch.cat([data.x[:,3][:,None], data.x[:,4][:,None]], dim=1)
+
             # NB: there is a problem right now for comparing hits at the +/- pi boundary
             edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=True, max_num_neighbors=255)
             result = model(x_cont, x_cat, edge_index, data.batch)
@@ -55,6 +70,7 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
             loss_avg.update(loss.item())
             t.set_postfix(loss='{:05.3f}'.format(loss_avg()))
             t.update()
+    
     scheduler.step(np.mean(loss_avg_arr))
     print('Training epoch: {:02d}, MSE: {:.4f}'.format(epoch, np.mean(loss_avg_arr)))
     return np.mean(loss_avg_arr)
@@ -70,8 +86,8 @@ if __name__ == '__main__':
 
     print(len(train_dl), len(test_dl))
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')    
-    model = net.Net(8, 3).to(device) #include puppi
-    #model = net.Net(7, 3).to(device) #remove puppi
+    model = net.Net(n_features_cont, n_features_cat).to(device) #include puppi
+    #model = net.Net(n_features_cont-1, n_features_cat).to(device) #remove puppi
     optimizer = torch.optim.AdamW(model.parameters(),lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
     first_epoch = 0
