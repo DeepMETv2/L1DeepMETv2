@@ -9,14 +9,14 @@ import awkward as ak
 import time
 import json
 from collections import OrderedDict,defaultdict
-recdd = lambda : defaultdict(recdd) ## define recursive defaultdict
+#recdd = lambda : defaultdict(recdd) ## define recursive defaultdict
 
 JSON_LOC = 'filelist.json'
 
 '''
 
 Changes made from DeepMETv2
-1. genmet_list contains only genMET (in both future_savez and __main__)
+1. genmet_list contains only genMet (in both future_savez and __main__)
 2. particle_list contains L1PuppiCands information instead of PFCands, based on L1MET's input (in both future_savez and __main__)
 3. datasetsname replaces Znunu to TTbar (in __main__); also change the JSON file used
 4. nparticles_per_event based on n(L1PuppiCands) in an event instead of PFCands (in __main__)
@@ -33,8 +33,8 @@ def multidict_tojson(filepath, indict):
 def future_savez(i, tot):
         #tic=time.time()
         genmet_list = [
-                events.genMET.pt[i] * np.cos(events.genMET.phi[i]),
-                events.genMET.pt[i] * np.sin(events.genMET.phi[i]),
+                events.genMet.pt[i] * np.cos(events.genMet.phi[i]),
+                events.genMet.pt[i] * np.sin(events.genMet.phi[i]),
         ]
       
         # particle_list follows L89-94 in https://github.com/jmduarte/L1METML/blob/main/convertNanoToHDF5_L1triggerToDeepMET.py
@@ -114,8 +114,8 @@ if __name__ == '__main__':
                 print("max nL1PuppiCands in this range: ", nparticles_per_event)
                 tic=time.time()
                 met_list = np.column_stack([
-                        events_slice.genMET.pt * np.cos(events_slice.genMET.phi),
-                        events_slice.genMET.pt * np.sin(events_slice.genMET.phi),
+                        events_slice.genMet.pt * np.cos(events_slice.genMet.phi),
+                        events_slice.genMet.pt * np.sin(events_slice.genMet.phi),
                 ])
                 particle_list = ak.concatenate([
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.pt, nparticles_per_event, clip=True), -999)           ],
@@ -125,8 +125,15 @@ if __name__ == '__main__':
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.pdgId, nparticles_per_event, clip=True), -999)        ],
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.charge, nparticles_per_event, clip=True), -999)       ],
                 ])
-                npz_file=os.environ['PWD']+'/raw/'+dataset+'_file'+str(currentfile)+'_slice_'+str(i)+'_nevent_'+str(len(events_slice))
-                np.savez(npz_file,x=particle_list,y=met_list) 
+
+                outdir = os.environ['PWD'] + '/raw/'
+                os.system('mkdir -p ' + outdir)
+
+                npz_file = outdir + dataset+'_file'+str(currentfile)+'_slice_'+str(i)+'_nevent_'+str(len(events_slice))
+
+                #npz_file=os.environ['PWD']+'/raw/'+dataset+'_file'+str(currentfile)+'_slice_'+str(i)+'_nevent_'+str(len(events_slice))
+                np.savez(npz_file, x=np.array(particle_list), y=np.array(met_list)) 
+
                 toc=time.time()
                 print('time:',toc-tic)
             currentfile+=1
