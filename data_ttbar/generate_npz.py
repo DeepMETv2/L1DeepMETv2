@@ -42,9 +42,9 @@ def future_savez(i, tot):
                         events.L1PuppiCands.pt[i],
                         events.L1PuppiCands.eta[i],
                         events.L1PuppiCands.phi[i],
+                        events.L1PuppiCands.puppiWeight[i],
                         events.L1PuppiCands.pdgId[i],
                         events.L1PuppiCands.charge[i],
-                        events.L1PuppiCands.puppiWeight[i],
         ])
 
         eventi = [particle_list,genmet_list]
@@ -121,9 +121,9 @@ if __name__ == '__main__':
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.pt, nparticles_per_event, clip=True), -999)           ],
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.eta, nparticles_per_event, clip=True), -999)          ],
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.phi, nparticles_per_event, clip=True), -999)          ],
+                             [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.puppiWeight, nparticles_per_event, clip=True), -999)  ],
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.pdgId, nparticles_per_event, clip=True), -999)        ],
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.charge, nparticles_per_event, clip=True), -999)       ],
-                             [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.puppiWeight, nparticles_per_event, clip=True), -999)  ],
                 ])
                 npz_file=os.environ['PWD']+'/raw/'+dataset+'_file'+str(currentfile)+'_slice_'+str(i)+'_nevent_'+str(len(events_slice))
                 np.savez(npz_file,x=particle_list,y=met_list) 
