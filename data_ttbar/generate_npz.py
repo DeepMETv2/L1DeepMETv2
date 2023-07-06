@@ -16,7 +16,7 @@ JSON_LOC = 'filelist.json'
 '''
 
 Changes made from DeepMETv2
-1. genmet_list contains only GenMET (in both future_savez and __main__)
+1. genmet_list contains only genMET (in both future_savez and __main__)
 2. particle_list contains L1PuppiCands information instead of PFCands, based on L1MET's input (in both future_savez and __main__)
 3. datasetsname replaces Znunu to TTbar (in __main__); also change the JSON file used
 4. nparticles_per_event based on n(L1PuppiCands) in an event instead of PFCands (in __main__)
@@ -33,8 +33,8 @@ def multidict_tojson(filepath, indict):
 def future_savez(i, tot):
         #tic=time.time()
         genmet_list = [
-                events.GenMET.pt[i] * np.cos(events.GenMET.phi[i]),
-                events.GenMET.pt[i] * np.sin(events.GenMET.phi[i]),
+                events.genMET.pt[i] * np.cos(events.genMET.phi[i]),
+                events.genMET.pt[i] * np.sin(events.genMET.phi[i]),
         ]
       
         # particle_list follows L89-94 in https://github.com/jmduarte/L1METML/blob/main/convertNanoToHDF5_L1triggerToDeepMET.py
@@ -114,8 +114,8 @@ if __name__ == '__main__':
                 print("max nL1PuppiCands in this range: ", nparticles_per_event)
                 tic=time.time()
                 met_list = np.column_stack([
-                        events_slice.GenMET.pt * np.cos(events_slice.GenMET.phi),
-                        events_slice.GenMET.pt * np.sin(events_slice.GenMET.phi),
+                        events_slice.genMET.pt * np.cos(events_slice.genMET.phi),
+                        events_slice.genMET.pt * np.sin(events_slice.genMET.phi),
                 ])
                 particle_list = ak.concatenate([
                              [ ak.fill_none(ak.pad_none(events_slice.L1PuppiCands.pt, nparticles_per_event, clip=True), -999)           ],
