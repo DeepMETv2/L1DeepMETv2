@@ -18,6 +18,17 @@ import torch_geometric.transforms as T
 from torch_geometric.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
+'''
+
+Changes made from DeepMETv2
+
+1. Change the list x in process(self)
+-- List based on L1MET: pt, px, py, eta, phi, puppiWeight, pdgId, charge
+-- Original DeepMETv2: pX,pY,pT,eta,d0,dz,mass,puppiWeight,pdgId,charge,fromPV (used to be: pt, eta, phi, d0, dz, mass, puppiWeight, pdgid, charge, frompv, pvref, pvAssocQuality)
+
+'''
+
+
 class METDataset(Dataset):
     """PyTorch geometric dataset from processed hit information"""
     
@@ -67,17 +78,20 @@ class METDataset(Dataset):
             npzfile = np.load(raw_path,allow_pickle=True)
             for ievt in range(np.shape(npzfile['x'])[1]):
                 inputs = np.array(npzfile['x'][:,ievt,:]).astype(np.float32)
-                #original: pt, eta, phi, d0, dz, mass, puppiWeight, pdgid, charge, frompv, pvref, pvAssocQuality
                 inputs=inputs.T 
-                #now: pX,pY,pT,eta,d0,dz,mass,puppiWeight,pdgId,charge,fromPV
-                x = inputs[:,3:10]
-                x=np.insert(x,0, inputs[:,0]*np.cos(inputs[:,2]),axis=1)
-                x=np.insert(x,1, inputs[:,0]*np.sin(inputs[:,2]),axis=1)
-                x=np.insert(x,2, inputs[:,0],axis=1)
-                x=np.insert(x,3, inputs[:,1],axis=1)
-                x=x[x[:,8]!=-999]
-                x=x[x[:,9]!=-999]
+                
+                # From particle_list defined in '/data_ttbar/generate_npz.py'
+                # pt, eta, phi, puppiWeight, pdgId, charge
+                # want to make the variable x sort the input variables in the following order: pt, px, py, eta, phi, puppiWeight, pdgId, charge
+                
+                x = inputs[:, 1:6]
+                x = np.insert(x, 0, inputs[:, 0], axis=1)
+                x = np.insert(x, 1, inputs[:, 0]*np.cos(inputs[:,2]), axis=1)
+                x = np.insert(x, 2, inputs[:, 0]*np.sin(inputs[:,2]), axis=1)
+                x = x[x[:,6]!=-999]
+                x = x[x[:,7]!=-999]
                 #print(x[0])
+                
                 x = np.nan_to_num(x)
                 x = np.clip(x, -5000., 5000.)
                 assert not np.any(np.isnan(x))
@@ -109,8 +123,4 @@ def fetch_dataloader(data_dir, batch_size, validation_split):
         'test':   DataLoader(val_subset, batch_size=batch_size, shuffle=False)
         }
     return dataloaders
-
-
-
-
 
