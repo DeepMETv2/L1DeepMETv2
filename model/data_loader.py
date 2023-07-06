@@ -90,6 +90,13 @@ class METDataset(Dataset):
                 x = np.insert(x, 2, inputs[:, 0]*np.sin(inputs[:,2]), axis=1)
                 x = x[x[:,6]!=-999]
                 x = x[x[:,7]!=-999]
+ 
+                # Remove "outliers"; in L1MET, preprocessing steps replaces the pT > 500 with pT = 0, and when calculating the loss, things with pT = 0 is not included in loss calculation
+                # I'll just remove the pT > 500 in the data processing itself
+                x = x[np.abs(x[:,0]) <= 500.]
+                x = x[np.abs(x[:,1]) <= 500.]   # redundant with pT cut
+                x = x[np.abs(x[:,2]) <= 500.]   # redundant with pT cut
+
                 #print(x[0])
                 
                 x = np.nan_to_num(x)
