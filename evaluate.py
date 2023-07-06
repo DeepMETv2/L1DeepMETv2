@@ -20,6 +20,17 @@ from torch_cluster import radius_graph, knn_graph
 
 import matplotlib.pyplot as plt
 
+'''
+
+Change from DeepMETv2
+
+1. Change x_cont, x_cat, etaphi in train() in accordance with the change of training inputs
+2. Add n_features_cont, n_features_cat to keep track of these numbers here and there, i.e. when building a model these numbers go into arguments 
+3. Remove the resolution-MET plotting part in evaluate, as L1 doesn't have bunch of METs that DeepMETv2 has access to
+
+'''
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--restore_file', default='best', help="name of the file in --model_dir \
                      containing weights to load")
@@ -27,6 +38,10 @@ parser.add_argument('--data', default='data',
                     help="Name of the data folder")
 parser.add_argument('--ckpts', default='ckpts',
                     help="Name of the ckpts folder")
+
+
+n_features_cont = 6
+n_features_cat = 2
 
 def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir):
     """Evaluate the model on `num_steps` batches.
@@ -43,6 +58,8 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
 
     # summary for current eval loop
     loss_avg_arr = []
+
+    '''
     qT_arr = []
     has_deepmet = False
     resolutions_arr = {
@@ -66,10 +83,12 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         'deepMETResolution': 'DeepMETResolution',
         'MET': 'DeepMETv2'
     }
+    '''
 
-    # compute metrics over the dataset
+# compute metrics over the dataset
     for data in dataloader:
 
+        '''
         has_deepmet = (data.y.size()[1] > 6)
         
         if has_deepmet == True and 'deepMETResponse' not in resolutions_arr.keys():
@@ -77,13 +96,15 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
                 'deepMETResponse': [[],[],[]],
                 'deepMETResolution': [[],[],[]]
             })
-        
+        '''
+
         data = data.to(device)
-        #x_cont = data.x[:,:7] #remove puppi
-        x_cont = data.x[:,:8] #include puppi
-        x_cat = data.x[:,8:].long()
-        phi = torch.atan2(data.x[:,1], data.x[:,0])
-        etaphi = torch.cat([data.x[:,3][:,None], phi[:,None]], dim=1)
+        #x_cont = data.x[:,:(n_features_cont-1)] #remove puppi
+        x_cont = data.x[:,:n_features_cont] #include puppi
+        x_cat = data.x[:,n_features_cont:].long()
+        #phi = torch.atan2(data.x[:,2], data.x[:,1])   # atan2(py, px)
+        etaphi = torch.cat([data.x[:,3][:,None], data.x[:,4][:,None]], dim=1)
+
         # NB: there is a problem right now for comparing hits at the +/- pi boundary 
         edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=True, max_num_neighbors=255)
         result = model(x_cont, x_cat, edge_index, data.batch)
@@ -100,13 +121,14 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         loss = loss_fn(result, data.x, data.y, data.batch)
 
         # compute all metrics on this batch
-        resolutions, qT= metrics['resolution'](result, data.x, data.y, data.batch)
-        for key in resolutions_arr:
-            for i in range(len(resolutions_arr[key])):
-                resolutions_arr[key][i]=np.concatenate((resolutions_arr[key][i],resolutions[key][i]))
-        qT_arr=np.concatenate((qT_arr,qT))
+        #resolutions, qT= metrics['resolution'](result, data.x, data.y, data.batch)
+        #for key in resolutions_arr:
+        #    for i in range(len(resolutions_arr[key])):
+        #        resolutions_arr[key][i]=np.concatenate((resolutions_arr[key][i],resolutions[key][i]))
+        #qT_arr=np.concatenate((qT_arr,qT))
         loss_avg_arr.append(loss.item())
 
+    '''
     # compute mean of all metrics in summary
     max_x=400 # max qT value
     x_n=40 #number of bins
@@ -154,6 +176,7 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
             'u_par_scaled_resolution':u_par_scaled_resolution,
             'R': R
         }
+    '''
     metrics_mean = {
         'loss': np.mean(loss_avg_arr),
         #'resolution': (np.quantile(resolution_arr,0.84)-np.quantile(resolution_arr,0.16))/2.
@@ -161,8 +184,8 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
     metrics_string = " ; ".join("{}: {:05.3f}".format(k, v)
                                 for k, v in metrics_mean.items())
     print("- Eval metrics : " + metrics_string)
-    return metrics_mean, resolution_hists
-
+    #return metrics_mean, resolution_hists
+    return metrics_mean
 
 if __name__ == '__main__':
     """
@@ -179,8 +202,8 @@ if __name__ == '__main__':
 
     # Define the model
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = net.Net(8, 3).to(device) #include puppi
-    #model = net.Net(7, 3).to(device) #remove puppi
+    model = net.Net(n_features_cont, n_features_cat).to(device) #include puppi
+    #model = net.Net(n_features_cont-1, n_features_cat).to(device) #remove puppi
     optimizer = torch.optim.AdamW(model.parameters(),lr=0.001)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
 
@@ -199,7 +222,8 @@ if __name__ == '__main__':
             best_validation_loss = json.load(restore_metrics)['loss']
 
     # Evaluate
-    test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
+    test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
+    #test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
     validation_loss = test_metrics['loss']
     is_best = (validation_loss<best_validation_loss)
     if is_best: 
@@ -216,4 +240,4 @@ if __name__ == '__main__':
         #utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_best.json'))
         #utils.save(resolutions, osp.join(model_dir, 'best.resolutions'))
 
-    utils.save(resolutions, os.path.join(model_dir, "{}.resolutions".format(args.restore_file)))
+    #utils.save(resolutions, os.path.join(model_dir, "{}.resolutions".format(args.restore_file)))

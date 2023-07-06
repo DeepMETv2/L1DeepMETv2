@@ -27,6 +27,7 @@ Change from DeepMETv2
 
 1. Change x_cont, x_cat, etaphi in train() in accordance with the change of training inputs 
 2. Add n_features_cont, n_features_cat to keep track of these numbers here and there, i.e. when building a model these numbers go into arguments
+3. Remove the resolution-MET plotting part in evaluate, as L1 doesn't have bunch of METs that DeepMETv2 has access to
 
 '''
 
@@ -131,7 +132,8 @@ if __name__ == '__main__':
                               checkpoint=model_dir)
 
         # Evaluate for one epoch on validation set
-        test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
+        test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
+        #test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
 
         validation_loss = test_metrics['loss']
         loss_log.write('%d,%.2f,%.2f\n'%(epoch,train_loss, validation_loss))
@@ -153,10 +155,10 @@ if __name__ == '__main__':
             
             # Save best val metrics in a json file in the model directory
             utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_best.json'))
-            utils.save(resolutions, osp.join(model_dir, 'best.resolutions'))
+            #utils.save(resolutions, osp.join(model_dir, 'best.resolutions'))
 
         utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_last.json'))
-        utils.save(resolutions, osp.join(model_dir, 'last.resolutions'))
+        #utils.save(resolutions, osp.join(model_dir, 'last.resolutions'))
 
     loss_log.close()
 
