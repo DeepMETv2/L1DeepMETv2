@@ -37,7 +37,9 @@ class METDataset(Dataset):
     
     def download(self):
         pass #download from xrootd or something later
-    
+
+    processed_dir = '/export/home/phys/kyungmip/L1DeepMETv2/pt/'
+
     @property
     def raw_file_names(self):
         if not hasattr(self,'input_files'):
@@ -117,7 +119,7 @@ def fetch_dataloader(data_dir, batch_size, validation_split):
     dataset_size = len(dataset)
     indices = list(range(dataset_size))
     split = int(np.floor(validation_split * dataset_size))
-    print(split)
+    print('Split: {}'.format(split))
     random_seed = 42
     # fix the random generator for train and test
     # taken from https://pytorch.org/docs/1.5.0/notes/randomness.html
