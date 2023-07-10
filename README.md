@@ -32,20 +32,19 @@ For producing training input data, we use _TTbar process_ simulation data availa
 L1PuppiCands_pt, L1PuppiCands_eta, L1PuppiCands_phi, L1PuppiCands_puppiWeight, L1PuppiCands_pdgId, L1PuppiCands_charge 
 ```
 
-From these six variables, we make the following training inputs into `.pt` files in `./data_ttbar/processed/` using [`./model/data_loader.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/model/data_loader.py):
+From these six variables, we make the following training inputs into `.pt` files under `./data_ttbar/processed/` using [`./model/data_loader.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/model/data_loader.py):
 
 ```
 pt, px (= pt*cos(phi)), py (= pt*sin(phi)), eta, phi, puppiWeight, pdgId, charge 
-
 ```
 
 
 ## Get Input Data and Train 
 
-Training script [`train.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/train.py) will use input data using torch dataloader. Training input in `.npz` format is available in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF) under `/raw/`.
+Training script [`train.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/train.py) will use input data using torch dataloader. Training input in `.npz` format is available in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF) under `/raw/`. Follow these steps to get the input data and train the algorithm.
 
-1. Download the `/raw/` folder containing `.npz` files and place the folder under `./data_ttbar/`.
-2. When you run the training script right after step 1, the training script will fetch the `.npz` files from `./data_ttbar/raw` and produce dataloader from these files, using the functions defined in [`./model/data_loader.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/model/data_loader.py). This dataloader-producing takes some time, so feel free to use the dataloader already produced and saved in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF). From the link, download the folder `processed` with dataloader saved as `.pt` files and place them under `./data_ttbar/`. 
+1. From [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF), download the `/raw/` folder containing `.npz` files and place the folder under `./data_ttbar/`.
+2. When you run the training script right after step 1, the training script will fetch the `.npz` files from `./data_ttbar/raw` and produce dataloader from these files, using the functions defined in [`./model/data_loader.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/model/data_loader.py). This dataloader-producing takes some time, so feel free to use the dataloader already produced and saved in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF). From the link, download the folder `processed` that contains dataloader saved as `.pt` files, and place them under `./data_ttbar/`. 
 3. Run the training script `train.py` using the following command:
 ```
 python train.py --data data_ttbar --ckpts ckpts_ttbar
