@@ -3,8 +3,8 @@
 
 This work extends the following efforts for MET reconstruction algorithms:
 - **Fully-Connected Neural Network (FCNN)** based algorithm in `keras` for **offline** MET reconstruction: [DeepMETv1](https://github.com/DeepMETv2/DeepMETv1)
-- **Graph Neural Network (GNN)** based algorithm in `torch` for **offline** MET reconstruction: [DeepMETv2](https://github.com/DeepMETv2/L1DeepMETv2)
-- **FCNN** based algorithm in `keras` for **online** MET reconstruction: [L1MET](https://github.com/jmduarte/L1METML/tree/main) 
+- **Graph Neural Network (GNN)** based algorithm in `torch` for **offline** MET reconstruction: [DeepMETv2](https://github.com/DeepMETv2/DeepMETv2)
+- **FCNN** based algorithm in `keras` for **online** MET reconstruction: [L1MET](https://github.com/jmduarte/L1METML) 
 
 
 
