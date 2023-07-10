@@ -48,6 +48,12 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
     model.train()
     loss_avg_arr = []
     loss_avg = utils.RunningAverage()
+
+    #with tqdm(total=len(dataloader)) as t:
+    #    for data in dataloader:
+    #        print(data.x[0])
+    #        break
+
     with tqdm(total=len(dataloader)) as t:
         for data in dataloader:
             optimizer.zero_grad()
@@ -85,7 +91,7 @@ if __name__ == '__main__':
     train_dl = dataloaders['train']
     test_dl = dataloaders['test']
 
-    print(len(train_dl), len(test_dl))
+    print('Training dataloader: {}, Test dataloader: {}'.format(len(train_dl), len(test_dl)))
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')    
     model = net.Net(n_features_cont, n_features_cat).to(device) #include puppi
     #model = net.Net(n_features_cont-1, n_features_cat).to(device) #remove puppi
@@ -100,6 +106,7 @@ if __name__ == '__main__':
     metrics = net.metrics
 
     model_dir = osp.join(os.environ['PWD'],args.ckpts)
+    os.system('mkdir -p {}'.format(model_dir))
     loss_log = open(model_dir+'/loss.log', 'w')
     loss_log.write('# loss log for training starting in '+strftime("%Y-%m-%d %H:%M:%S", gmtime()) + '\n')
     loss_log.write('epoch, loss, val_loss\n')
@@ -160,5 +167,6 @@ if __name__ == '__main__':
         utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_last.json'))
         #utils.save(resolutions, osp.join(model_dir, 'last.resolutions'))
 
-    loss_log.close()
+        #break
 
+    loss_log.close()
