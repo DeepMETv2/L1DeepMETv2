@@ -38,8 +38,6 @@ class METDataset(Dataset):
     def download(self):
         pass #download from xrootd or something later
 
-    processed_dir = '/export/home/phys/kyungmip/L1DeepMETv2/pt/'
-
     @property
     def raw_file_names(self):
         if not hasattr(self,'input_files'):
@@ -100,7 +98,11 @@ class METDataset(Dataset):
                 x = x[np.abs(x[:,2]) <= 500.]   # redundant with pT cut
 
                 #print(x[0])
-                
+                #print('processed dir')
+                #print(self.processed_dir)
+                #print('raw dir')
+                #print(self.raw_paths)
+
                 x = np.nan_to_num(x)
                 x = np.clip(x, -5000., 5000.)
                 assert not np.any(np.isnan(x))
