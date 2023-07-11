@@ -12,12 +12,12 @@ This work extends the following efforts for MET reconstruction algorithms:
 
 ```
 conda install cudatoolkit=10.2
-conda install -c pytorch pytorch=1.9.0
+conda install -c pytorch pytorch=1.12.0
 export CUDA="cu102"
-pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.9.0+${CUDA}.html
-pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.9.0+${CUDA}.html
-pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.9.0+${CUDA}.html
-pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.9.0+${CUDA}.html
+pip install torch-scatter -f https://pytorch-geometric.com/whl/torch-1.12.0+${CUDA}.html
+pip install torch-sparse -f https://pytorch-geometric.com/whl/torch-1.12.0+${CUDA}.html
+pip install torch-cluster -f https://pytorch-geometric.com/whl/torch-1.12.0+${CUDA}.html
+pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.12.0+${CUDA}.html
 pip install torch-geometric
 pip install coffea
 pip install mplhep
