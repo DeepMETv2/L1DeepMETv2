@@ -10,35 +10,43 @@ from model.dynamic_reduction_network import DynamicReductionNetwork
 from model.graph_met_network import GraphMETNetwork
 
 '''
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.drn = DynamicReductionNetwork(input_dim=11, hidden_dim=64,
-                                           k = 8,
-                                           output_dim=2, aggr='max',
-                                           norm=torch.tensor([1./2950.0,         #px
-                                                              1./2950.0,         #py
-                                                              1./2950.0,         #pt
-                                                              1./5.265625,       #eta
-                                                              1./143.875,        #d0
-                                                              1./589.,           #dz
-                                                              1./1.2050781,      #mass
-                                                              1./211.,           #pdgId
-                                                              1.,                #charge
-                                                              1./7.,             #fromPV
-                                                              1.                 #puppiWeight
-                                                          ]))
-    def forward(self, data):
-        output = self.drn(data)
-        met    = nn.Softplus()(output[:,0]).unsqueeze(1)
-        metphi = math.pi*(2*torch.sigmoid(output[:,1]) - 1).unsqueeze(1)
-        output = torch.cat((met, metphi), 1)  
-        return output
+
+Change from DeepMETv2
+1. Add loss_fn_response for response-tuned MET
+
 '''
+
+#class Net(nn.Module):
+#    def __init__(self):
+#        super(Net, self).__init__()
+#        self.drn = DynamicReductionNetwork(input_dim=11, hidden_dim=64,
+#                                           k = 8,
+#                                           output_dim=2, aggr='max',
+#                                           norm=torch.tensor([1./2950.0,         #px
+#                                                              1./2950.0,         #py
+#                                                              1./2950.0,         #pt
+#                                                              1./5.265625,       #eta
+#                                                              1./143.875,        #d0
+#                                                              1./589.,           #dz
+#                                                              1./1.2050781,      #mass
+#                                                              1./211.,           #pdgId
+#                                                              1.,                #charge
+#                                                              1./7.,             #fromPV
+#                                                              1.                 #puppiWeight
+#                                                          ]))
+#    def forward(self, data):
+#        output = self.drn(data)
+#        met    = nn.Softplus()(output[:,0]).unsqueeze(1)
+#        metphi = math.pi*(2*torch.sigmoid(output[:,1]) - 1).unsqueeze(1)
+#        output = torch.cat((met, metphi), 1)  
+#        return output
+
 class Net(nn.Module):
-    def __init__(self, continuous_dim, categorical_dim):
+    def __init__(self, continuous_dim, categorical_dim, norm):
+    #def __init__(self, continuous_dim, categorical_dim):
         super(Net, self).__init__()
-        self.graphnet = GraphMETNetwork(continuous_dim, categorical_dim,
+        self.graphnet = GraphMETNetwork(continuous_dim, categorical_dim, norm,
+        #self.graphnet = GraphMETNetwork(continuous_dim, categorical_dim,
                                         output_dim=1, hidden_dim=32,
                                         conv_depth=2)
     
@@ -49,8 +57,12 @@ class Net(nn.Module):
 def loss_fn(weights, prediction, truth, batch):
     px=prediction[:,0]
     py=prediction[:,1]
-    true_px=truth[:,0] 
-    true_py=truth[:,1]
+    
+    true_px=truth[:,0]/1000.
+    true_py=truth[:,1]/1000.
+
+    #true_px=truth[:,0] 
+    #true_py=truth[:,1]
     #print('HT', truth[:,10])
     METx = scatter_add(weights*px, batch)
     METy = scatter_add(weights*py, batch)

@@ -38,7 +38,12 @@ parser.add_argument('--data', default='data',
                     help="Name of the data folder")
 parser.add_argument('--ckpts', default='ckpts',
                     help="Name of the ckpts folder")
-
+parser.add_argument('--batch_size', default=6,
+                    help="Batch size")
+parser.add_argument('--lr', default=0.01,
+                    help="Learning rate")
+parser.add_argument('--weight_decay', default=0.001,
+                    help="Weight decay")
 
 n_features_cont = 6
 n_features_cat = 2
@@ -196,7 +201,7 @@ if __name__ == '__main__':
 
     # fetch dataloaders
     dataloaders = data_loader.fetch_dataloader(data_dir=osp.join(os.environ['PWD'],args.data), 
-                                               batch_size=40, 
+                                               batch_size=int(args.batch_size), 
                                                validation_split=0.2)
     test_dl = dataloaders['test']
 
@@ -204,8 +209,10 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = net.Net(n_features_cont, n_features_cat).to(device) #include puppi
     #model = net.Net(n_features_cont-1, n_features_cat).to(device) #remove puppi
-    optimizer = torch.optim.AdamW(model.parameters(),lr=0.001)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
+    #optimizer = torch.optim.AdamW(model.parameters(),lr=0.001)
+    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
+    optimizer = torch.optim.AdamW(model.parameters(),lr=float(args.lr), weight_decay=float(args.weight_decay))
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
 
     loss_fn = net.loss_fn
     metrics = net.metrics

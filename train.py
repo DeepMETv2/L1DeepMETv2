@@ -28,6 +28,8 @@ Change from DeepMETv2
 1. Change x_cont, x_cat, etaphi in train() in accordance with the change of training inputs 
 2. Add n_features_cont, n_features_cat to keep track of these numbers here and there, i.e. when building a model these numbers go into arguments
 3. Remove the resolution-MET plotting part in evaluate, as L1 doesn't have bunch of METs that DeepMETv2 has access to
+4. Add input scaling to [0,1] (norm)
+5. Add weight_decay to the optimizer, remove patience from the scheduler 
 
 '''
 
@@ -40,6 +42,12 @@ parser.add_argument('--data', default='data',
                     help="Name of the data folder")
 parser.add_argument('--ckpts', default='ckpts',
                     help="Name of the ckpts folder")
+parser.add_argument('--batch_size', default=6,
+                    help="Batch size")
+parser.add_argument('--lr', default=0.01,
+                    help="Learning rate")
+parser.add_argument('--weight_decay', default=0.001,
+                    help="Weight decay")
 
 n_features_cont = 6
 n_features_cat = 2
@@ -80,23 +88,37 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
     
     scheduler.step(np.mean(loss_avg_arr))
     print('Training epoch: {:02d}, MSE: {:.4f}'.format(epoch, np.mean(loss_avg_arr)))
+
+    model_dir = osp.join(os.environ['PWD'],args.ckpts)
+    os.system('mkdir -p {}/MODELS'.format(model_dir))
+
+    #torch.save(model, '{}/MODELS/model_epoch{}.pt'.format(model_dir, epoch))
+
     return np.mean(loss_avg_arr)
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     dataloaders = data_loader.fetch_dataloader(data_dir=osp.join(os.environ['PWD'],args.data), 
-                                               batch_size=6,
+                                               batch_size=int(args.batch_size),
                                                validation_split=.2)
     train_dl = dataloaders['train']
     test_dl = dataloaders['test']
 
     print('Training dataloader: {}, Test dataloader: {}'.format(len(train_dl), len(test_dl)))
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')    
-    model = net.Net(n_features_cont, n_features_cat).to(device) #include puppi
-    #model = net.Net(n_features_cont-1, n_features_cat).to(device) #remove puppi
-    optimizer = torch.optim.AdamW(model.parameters(),lr=0.001)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
+    
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    #norm = torch.tensor([1./2950., 1./2950, 1./2950, 1., 1., 1.]).to(device)
+    norm = torch.tensor([1./1000., 1./1000., 1./1000., 1./5.035, 1./3.142, 1.]).to(device)   # pt, px, py: match it to genMETx genMETx scale factor
+    #norm = torch.tensor([1./499.25, 1./491.312, 1./495.928, 1./5.035, 1./3.142, 1.]).to(device)   # Have inputs within [0,1]
+
+    model = net.Net(n_features_cont, n_features_cat, norm).to(device) #include puppi
+    #model = net.Net(n_features_cont-1, n_features_cat, norm).to(device) #remove puppi
+    optimizer = torch.optim.AdamW(model.parameters(),lr=float(args.lr), weight_decay=float(args.weight_decay))
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
+    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
     first_epoch = 0
     best_validation_loss = 10e7
     deltaR = 0.4
@@ -143,7 +165,7 @@ if __name__ == '__main__':
         #test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
 
         validation_loss = test_metrics['loss']
-        loss_log.write('%d,%.2f,%.2f\n'%(epoch,train_loss, validation_loss))
+        loss_log.write('%d,%.8f,%.8f\n'%(epoch,train_loss, validation_loss))
         loss_log.flush()
         is_best = (validation_loss<=best_validation_loss)
 
