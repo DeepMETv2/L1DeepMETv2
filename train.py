@@ -107,17 +107,22 @@ if __name__ == '__main__':
 
     print('Training dataloader: {}, Test dataloader: {}'.format(len(train_dl), len(test_dl)))
     
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(2)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     #norm = torch.tensor([1./2950., 1./2950, 1./2950, 1., 1., 1.]).to(device)
-    norm = torch.tensor([1./1000., 1./1000., 1./1000., 1./5.035, 1./3.142, 1.]).to(device)   # pt, px, py: match it to genMETx genMETx scale factor
+    
+    norm = torch.tensor([1., 1., 1., 1., 1., 1.]).to(device)   # pt, px, py: match it to genMETx genMETx scale factor
+    #norm = torch.tensor([1./1000., 1./1000., 1./1000., 1., 1., 1.]).to(device)   # pt, px, py: match it to genMETx genMETx scale factor
+    
     #norm = torch.tensor([1./499.25, 1./491.312, 1./495.928, 1./5.035, 1./3.142, 1.]).to(device)   # Have inputs within [0,1]
 
     model = net.Net(n_features_cont, n_features_cat, norm).to(device) #include puppi
     #model = net.Net(n_features_cont-1, n_features_cat, norm).to(device) #remove puppi
     optimizer = torch.optim.AdamW(model.parameters(),lr=float(args.lr), weight_decay=float(args.weight_decay))
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
+    #scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr = 0.1)
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr = 1e-4, max_lr = 1e-3, cycle_momentum=False)
+    #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
     #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
     first_epoch = 0
     best_validation_loss = 10e7
@@ -161,8 +166,8 @@ if __name__ == '__main__':
                               checkpoint=model_dir)
 
         # Evaluate for one epoch on validation set
-        test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
-        #test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
+        #test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
+        test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
 
         validation_loss = test_metrics['loss']
         loss_log.write('%d,%.8f,%.8f\n'%(epoch,train_loss, validation_loss))
@@ -184,10 +189,10 @@ if __name__ == '__main__':
             
             # Save best val metrics in a json file in the model directory
             utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_best.json'))
-            #utils.save(resolutions, osp.join(model_dir, 'best.resolutions'))
+            utils.save(resolutions, osp.join(model_dir, 'best.resolutions'))
 
         utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_last.json'))
-        #utils.save(resolutions, osp.join(model_dir, 'last.resolutions'))
+        utils.save(resolutions, osp.join(model_dir, 'last.resolutions'))
 
         #break
 

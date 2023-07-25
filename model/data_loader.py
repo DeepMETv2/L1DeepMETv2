@@ -130,8 +130,8 @@ def fetch_dataloader(data_dir, batch_size, validation_split):
 #                                                             generator=torch.Generator().manual_seed(random_seed))
     print('length of train/val data: ', len(train_subset), len(val_subset))
     dataloaders = {
-        'train':  DataLoader(train_subset, batch_size=batch_size, shuffle=False),
-        'test':   DataLoader(val_subset, batch_size=batch_size, shuffle=False)
+        'train':  DataLoader(train_subset, batch_size=batch_size, num_workers=4, pin_memory=True, shuffle=False),
+        'test':   DataLoader(val_subset, batch_size=batch_size, num_workers=4, shuffle=False)
         }
     return dataloaders
 
