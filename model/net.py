@@ -57,9 +57,27 @@ class Net(nn.Module):
 def loss_fn(weights, prediction, truth, batch):
     px=prediction[:,0]
     py=prediction[:,1]
-    
-    true_px=truth[:,0]/1000.
-    true_py=truth[:,1]/1000.
+   
+    # shift the distribution so that its minimum value is at 0 and then scale it so that its maximum value is at 1
+    #genMETx_min = -747.168
+    #genMETx_max = 966.450
+    #genMETy_min = -932.410
+    #genMETy_max = 811.353
+
+    #true_px = truth[:,0]
+    #true_py = truth[:,1]
+
+    #torch.add(true_px, (-1)*genMETx_min)
+    #torch.add(true_py, (-1)*genMETy_min)
+
+    #true_px /= genMETx_max
+    #true_py /= genMETy_max
+
+
+    true_px=truth[:,0]
+    true_py=truth[:,1]
+    #true_px=truth[:,0]/1000.
+    #true_py=truth[:,1]/1000.
 
     #true_px=truth[:,0] 
     #true_py=truth[:,1]
@@ -82,7 +100,7 @@ def scalermul(a,v):
 
 def u_perp_par_loss(weights, prediction, truth, batch):
     qTx=truth[:,0]#*torch.cos(truth[:,1])
-    qTy=truth[:,0]#*torch.sin(truth[:,1])
+    qTy=truth[:,1]#*torch.sin(truth[:,1])
     # truth qT
     v_qT=torch.stack((qTx,qTy),dim=1)
 
@@ -115,16 +133,17 @@ def resolution(weights, prediction, truth, batch):
     # truth qT
     v_qT=torch.stack((qTx,qTy),dim=1)
 
-    pfMETx=truth[:,2]#*torch.cos(truth[:,3])
-    pfMETy=truth[:,3]#*torch.sin(truth[:,3])
+    #pfMETx=truth[:,2]#*torch.cos(truth[:,3])
+    #pfMETy=truth[:,3]#*torch.sin(truth[:,3])
     # PF MET
-    v_pfMET=torch.stack((pfMETx, pfMETy),dim=1)
+    #v_pfMET=torch.stack((pfMETx, pfMETy),dim=1)
 
-    puppiMETx=truth[:,4]#*torch.cos(truth[:,5])
-    puppiMETy=truth[:,5]#*torch.sin(truth[:,5])
+    #puppiMETx=truth[:,4]#*torch.cos(truth[:,5])
+    #puppiMETy=truth[:,5]#*torch.sin(truth[:,5])
     # PF MET                                                                                                                                                            
-    v_puppiMET=torch.stack((puppiMETx, puppiMETy),dim=1)
+    #v_puppiMET=torch.stack((puppiMETx, puppiMETy),dim=1)
 
+    '''
     has_deepmet = False
     if truth.size()[1] > 6:
         has_deepmet = True
@@ -137,7 +156,8 @@ def resolution(weights, prediction, truth, batch):
         deepMETResolution_y=truth[:,9]#*torch.sin(truth[:,9])
         # DeepMET Resolution Tune
         v_deepMETResolution=torch.stack((deepMETResolution_x, deepMETResolution_y),dim=1)
-    
+    '''
+
     px=prediction[:,0]
     py=prediction[:,1]
     #weights = torch.where( prediction[:,9] == 10, weights , prediction[:,7] )
@@ -145,7 +165,6 @@ def resolution(weights, prediction, truth, batch):
     METy = scatter_add(weights*py, batch)
     # predicted MET/qT
     v_MET=torch.stack((METx, METy),dim=1)
-
     
     
     def compute(vector):
@@ -158,14 +177,14 @@ def resolution(weights, prediction, truth, batch):
 
     resolutions= {
         'MET':      compute(-v_MET),
-        'pfMET':    compute(v_pfMET),
-        'puppiMET': compute(v_puppiMET)
+        #'pfMET':    compute(v_pfMET),
+        #'puppiMET': compute(v_puppiMET)
     }
-    if has_deepmet:
-        resolutions.update({
-            'deepMETResponse':   compute(v_deepMETResponse),
-            'deepMETResolution': compute(v_deepMETResolution)
-        })
+    #if has_deepmet:
+    #    resolutions.update({
+    #        'deepMETResponse':   compute(v_deepMETResponse),
+    #        'deepMETResolution': compute(v_deepMETResolution)
+    #    })
     return resolutions, torch.sqrt(truth[:,0]**2+truth[:,1]**2).cpu().detach().numpy()
 
 # maintain all metrics required in this dictionary- these are used in the training and evaluation loops
