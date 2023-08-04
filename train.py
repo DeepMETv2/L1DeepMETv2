@@ -121,7 +121,7 @@ if __name__ == '__main__':
     #model = net.Net(n_features_cont-1, n_features_cat, norm).to(device) #remove puppi
     optimizer = torch.optim.AdamW(model.parameters(),lr=float(args.lr), weight_decay=float(args.weight_decay))
     #scheduler = torch.optim.lr_scheduler.OneCycleLR(optimizer, max_lr = 0.1)
-    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr = 1e-4, max_lr = 1e-3, cycle_momentum=False)
+    scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr = 1e-5, max_lr = 1e-4, cycle_momentum=False)
     #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
     #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, patience=500, threshold=0.05)
     first_epoch = 0

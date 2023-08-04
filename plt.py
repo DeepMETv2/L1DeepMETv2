@@ -14,52 +14,54 @@ parser.add_argument('--ckpts', default='ckpts',
 
 
 args = parser.parse_args()
-a=load(args.ckpts + '/' +args.restore_file+ '.resolutions')
+#a=load(args.ckpts + '/' +args.restore_file+ '.resolutions')
+a=load(args.ckpts + '/best.resolutions')
 colors = {
-    'pfMET': 'black',
-    'puppiMET': 'red',
-    'deepMETResponse': 'blue',
-    'deepMETResolution': 'green',
+#    'pfMET': 'black',
+#    'puppiMET': 'red',
+#    'deepMETResponse': 'blue',
+#    'deepMETResolution': 'green',
     'MET':  'magenta',
 }
 label_arr = {
     'MET':     'Graph MET' ,
-    'pfMET':    'PF MET',
-    'puppiMET': 'PUPPI MET',
-    'deepMETResponse': 'DeepMETResponse',
-    'deepMETResolution': 'DeepMETResolution',
+#    'pfMET':    'PF MET',
+#    'puppiMET': 'PUPPI MET',
+#    'deepMETResponse': 'DeepMETResponse',
+#    'deepMETResolution': 'DeepMETResolution',
 }
 resolutions_arr = {
     'MET':      [[],[],[]],
-    'pfMET':    [[],[],[]],
-    'puppiMET': [[],[],[]],
-    'deepMETResponse': [[],[],[]],
-    'deepMETResolution': [[],[],[]],
+#    'pfMET':    [[],[],[]],
+#    'puppiMET': [[],[],[]],
+#    'deepMETResponse': [[],[],[]],
+#    'deepMETResolution': [[],[],[]],
 }
 for key in resolutions_arr:
          plt.figure(1)
-         xx = a[key]['u_perp_resolution'][1][0:20]
+         xx = a[key]['u_perp_resolution'][1][0:40]
          yy = a[key]['u_perp_resolution'][0]
          plt.plot(xx, yy,color=colors[key], label=label_arr[key])
          plt.figure(2)
-         xx = a[key]['u_perp_scaled_resolution'][1][0:20]
+         xx = a[key]['u_perp_scaled_resolution'][1][0:40]
          yy = a[key]['u_perp_scaled_resolution'][0]
          plt.plot(xx, yy,color=colors[key], label=label_arr[key])
          plt.figure(3)
-         xx = a[key]['u_par_resolution'][1][0:20]
+         xx = a[key]['u_par_resolution'][1][0:40]
          yy = a[key]['u_par_resolution'][0]
          plt.plot(xx, yy,color=colors[key], label=label_arr[key])
          plt.figure(4)
-         xx = a[key]['u_par_scaled_resolution'][1][0:20]
+         xx = a[key]['u_par_scaled_resolution'][1][0:40]
          yy = a[key]['u_par_scaled_resolution'][0]
          plt.plot(xx, yy,color=colors[key], label=label_arr[key])
          plt.figure(5)
-         xx = a[key]['R'][1][0:20]
+         xx = a[key]['R'][1][0:40]
          yy = a[key]['R'][0]
          plt.plot(xx, yy,color=colors[key], label=label_arr[key])
 
 if(True):
-    model_dir=args.ckpts+'/'+args.restore_file+'_'
+    model_dir=args.ckpts+'/'
+    #model_dir=args.ckpts+'/'+args.restore_file+'_'
     plt.figure(1)
     plt.axis([0, 400, 0, 35])
     plt.xlabel(r'$q_{T}$ [GeV]')

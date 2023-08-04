@@ -177,6 +177,7 @@ def resolution(weights, prediction, truth, batch):
 
     resolutions= {
         'MET':      compute(-v_MET),
+        #'MET':      compute(-v_MET),
         #'pfMET':    compute(v_pfMET),
         #'puppiMET': compute(v_puppiMET)
     }
