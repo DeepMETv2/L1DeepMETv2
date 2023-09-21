@@ -48,7 +48,7 @@ parser.add_argument('--weight_decay', default=0.001,
 n_features_cont = 6
 n_features_cat = 2
 
-def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir):
+def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir, epoch):
     """Evaluate the model on `num_steps` batches.
 
     Args:
@@ -63,7 +63,9 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
 
     # summary for current eval loop
     loss_avg_arr = []
-
+    true_px_arr, true_py_arr, METx_arr, METy_arr = [], [], [], []
+    
+    
     qT_arr = []
     #has_deepmet = False
     resolutions_arr = {
@@ -121,7 +123,12 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         #toc = time.time()
         #print('Event processing speed', toc - tic)
 
-        loss = loss_fn(result, data.x, data.y, data.batch)
+        loss, true_px, true_py, METx, METy = loss_fn(result, data.x, data.y, data.batch)
+        
+        true_px_arr.append(true_px.cpu().numpy())
+        true_py_arr.append(true_py.cpu().numpy())
+        METx_arr.append(METx.detach().cpu().numpy())
+        METy_arr.append(METy.detach().cpu().numpy())
 
         # compute all metrics on this batch
         resolutions, qT= metrics['resolution'](result, data.x, data.y, data.batch)
@@ -130,6 +137,17 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
                 resolutions_arr[key][i]=np.concatenate((resolutions_arr[key][i],resolutions[key][i]))
         qT_arr=np.concatenate((qT_arr,qT))
         loss_avg_arr.append(loss.item())
+    
+            
+    true_px_list = np.concatenate(true_px_arr).ravel()
+    true_py_list = np.concatenate(true_py_arr).ravel()
+    METx_list = np.concatenate(METx_arr).ravel()
+    METy_list = np.concatenate(METy_arr).ravel()
+        
+    np.savetxt('{}/epoch{}_true_px.txt'.format(model_dir, epoch), true_px_list, delimiter=',')
+    np.savetxt('{}/epoch{}_true_py.txt'.format(model_dir, epoch), true_py_list, delimiter=',')
+    np.savetxt('{}/epoch{}_METx.txt'.format(model_dir, epoch), METx_list, delimiter=',')
+    np.savetxt('{}/epoch{}_METy.txt'.format(model_dir, epoch), METy_list, delimiter=',')
 
     # compute mean of all metrics in summary
     max_x=400 # max qT value
@@ -244,7 +262,7 @@ if __name__ == '__main__':
 
     # Evaluate
     #test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
-    test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
+    test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir, epoch)
     validation_loss = test_metrics['loss']
     is_best = (validation_loss<best_validation_loss)
     if is_best: 

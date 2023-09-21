@@ -89,7 +89,91 @@ def loss_fn(weights, prediction, truth, batch):
     #prediction[:,]: pX,pY,pT,eta,d0,dz,mass,puppiWeight,pdgId,charge,fromPV
     loss=0.5*( ( METx + true_px)**2 + ( METy + true_py)**2 ).mean() 
     #+ 5000*BCE(torch.where(prediction[:,9]==0, tzero, weights), torch.where(prediction[:,9]==0, tzero, prediction[:,7]))
+    
     return loss
+
+
+def loss_fn_compare(weights, prediction, truth, batch):
+    px=prediction[:,0]
+    py=prediction[:,1]
+   
+    # shift the distribution so that its minimum value is at 0 and then scale it so that its maximum value is at 1
+    #genMETx_min = -747.168
+    #genMETx_max = 966.450
+    #genMETy_min = -932.410
+    #genMETy_max = 811.353
+
+    #true_px = truth[:,0]
+    #true_py = truth[:,1]
+
+    #torch.add(true_px, (-1)*genMETx_min)
+    #torch.add(true_py, (-1)*genMETy_min)
+
+    #true_px /= genMETx_max
+    #true_py /= genMETy_max
+
+
+    #true_px=truth[:,0]
+    #true_py=truth[:,1]
+    true_px=truth[:,0]/1000.
+    true_py=truth[:,1]/1000.
+
+    #true_px=truth[:,0] 
+    #true_py=truth[:,1]
+    #print('HT', truth[:,10])
+    METx = scatter_add(weights*px, batch)/1000.
+    METy = scatter_add(weights*py, batch)/1000.
+    #tzero = torch.zeros(prediction.shape[0]).to('cuda')
+    #BCE = nn.BCELoss()
+    #prediction[:,]: pX,pY,pT,eta,d0,dz,mass,puppiWeight,pdgId,charge,fromPV
+    loss=0.5*( ( METx + true_px)**2 + ( METy + true_py)**2 ).mean() 
+    #+ 5000*BCE(torch.where(prediction[:,9]==0, tzero, weights), torch.where(prediction[:,9]==0, tzero, prediction[:,7]))
+    
+    return loss, true_px, true_py, METx, METy
+
+
+def loss_fn_response(weights, prediction, truth, batch, c = 5000):
+    px=prediction[:,0]
+    py=prediction[:,1]
+   
+    true_px=truth[:,0]
+    true_py=truth[:,1]
+    #true_px=truth[:,0]/1000.
+    #true_py=truth[:,1]/1000.
+
+    #print('HT', truth[:,10])
+    METx = scatter_add(weights*px, batch)
+    METy = scatter_add(weights*py, batch)
+    #METx = scatter_add(weights*px, batch)/1000.
+    #METy = scatter_add(weights*py, batch)/1000.
+    
+    loss=0.5*( ( METx + true_px)**2 + ( METy + true_py)**2 ).mean()
+    
+    pT_truth = torch.sqrt( true_px*true_px + true_py*true_py )
+    upar_pred = torch.sqrt( METx*METx + METy*METy ) - pT_truth
+    
+    upar_pred_pos = upar_pred > 0.
+    upar_pred_neg = upar_pred < 0.
+    
+    print('upar_pred_pos', upar_pred_pos)
+    print('upar_pred_neg', upar_pred_neg)
+    
+    norm = torch.sum(pT_truth)
+    
+    print('norm', norm)
+    
+    response_term = c * (torch.sum(upar_pred_pos) - torch.sum(upar_pred_neg))
+    
+    print('response_term before norm', response_term)
+    
+    response_term = response_term/norm 
+    
+    print('response_term after norm', response_term)
+    
+    loss += response_term
+    
+    return loss, true_px, true_py, METx, METy
+
 
 def getdot(vx, vy):
     return torch.einsum('bi,bi->b',vx,vy)
