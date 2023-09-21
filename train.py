@@ -77,7 +77,8 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
             # NB: there is a problem right now for comparing hits at the +/- pi boundary
             edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=True, max_num_neighbors=255)
             result = model(x_cont, x_cat, edge_index, data.batch)
-            loss = loss_fn(result, data.x, data.y, data.batch)
+            #loss = loss_fn(result, data.x, data.y, data.batch)
+            loss, true_px, true_py, METx, METy = loss_fn(result, data.x, data.y, data.batch)
             loss.backward()
             optimizer.step()
             # update the average loss
@@ -92,7 +93,7 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader, epoch):
     model_dir = osp.join(os.environ['PWD'],args.ckpts)
     os.system('mkdir -p {}/MODELS'.format(model_dir))
 
-    #torch.save(model, '{}/MODELS/model_epoch{}.pt'.format(model_dir, epoch))
+    torch.save(model, '{}/MODELS/model_epoch{}.pt'.format(model_dir, epoch))
 
     return np.mean(loss_avg_arr)
 
@@ -129,7 +130,8 @@ if __name__ == '__main__':
     deltaR = 0.4
     deltaR_dz = 0.3
 
-    loss_fn = net.loss_fn
+    #loss_fn = net.loss_fn
+    loss_fn = net.loss_fn_compare
     metrics = net.metrics
 
     model_dir = osp.join(os.environ['PWD'],args.ckpts)
@@ -167,7 +169,7 @@ if __name__ == '__main__':
 
         # Evaluate for one epoch on validation set
         #test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
-        test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir)
+        test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR,deltaR_dz, model_dir, epoch)
 
         validation_loss = test_metrics['loss']
         loss_log.write('%d,%.8f,%.8f\n'%(epoch,train_loss, validation_loss))
