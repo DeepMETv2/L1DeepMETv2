@@ -1,4 +1,4 @@
-name: base
+name: DeepMET
 channels:
   - esri
   - conda-forge
@@ -410,4 +410,3 @@ dependencies:
     - uproot==4.3.7
     - uproot3==3.14.4
     - uproot3-methods==0.10.1
-prefix: /export/home/phys/kyungmip/anaconda3
