@@ -10,6 +10,12 @@ This work extends the following efforts for MET reconstruction algorithms:
 
 ## Prerequisites 
 
+Setup can be done by creating a conda environment using `yml` provided in the directory.
+```
+conda env create -f DeepMET.yml --name [YOUR CONDA ENV NAME]
+```
+
+Or manually like the following:
 ```
 conda install cudatoolkit=10.2
 conda install -c pytorch pytorch=1.12.0
