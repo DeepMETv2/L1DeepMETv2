@@ -1,0 +1,31 @@
+
+     active environment : base
+    active env location : /export/home/phys/kyungmip/anaconda3
+            shell level : 1
+       user config file : /export/home/phys/kyungmip/.condarc
+ populated config files : /export/home/phys/kyungmip/.condarc
+          conda version : 4.14.0
+    conda-build version : 3.21.4
+         python version : 3.8.8.final.0
+       virtual packages : __cuda=11.4=0
+                          __linux=5.15.0=0
+                          __glibc=2.31=0
+                          __unix=0=0
+                          __archspec=1=x86_64
+       base environment : /export/home/phys/kyungmip/anaconda3  (writable)
+      conda av data dir : /export/home/phys/kyungmip/anaconda3/etc/conda
+  conda av metadata url : None
+           channel URLs : https://repo.anaconda.com/pkgs/main/linux-64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/linux-64
+                          https://repo.anaconda.com/pkgs/r/noarch
+          package cache : /export/home/phys/kyungmip/anaconda3/pkgs
+                          /export/home/phys/kyungmip/.conda/pkgs
+       envs directories : /export/home/phys/kyungmip/anaconda3/envs
+                          /export/home/phys/kyungmip/.conda/envs
+               platform : linux-64
+             user-agent : conda/4.14.0 requests/2.25.1 CPython/3.8.8 Linux/5.15.0-83-generic ubuntu/20.04.6 glibc/2.31
+                UID:GID : 13358:13358
+             netrc file : None
+           offline mode : False
+
