@@ -50,10 +50,16 @@ pt, px (= pt*cos(phi)), py (= pt*sin(phi)), eta, phi, puppiWeight, pdgId, charge
 Training script [`train.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/train.py) will use input data using torch dataloader. Training input in `.npz` format is available in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF) under `/raw/`. Follow these steps to get the input data and train the algorithm.
 
 1. From [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF), download the `/raw/` folder containing `.npz` files and place the folder under `./data_ttbar/`.
-2. When you run the training script right after step 1, the training script will fetch the `.npz` files from `./data_ttbar/raw` and produce dataloader from these files, using the functions defined in [`./model/data_loader.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/model/data_loader.py). This dataloader-producing takes some time, so feel free to use the dataloader already produced and saved in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF). From the link, download `processed.tar.gz` that contains dataloader saved as `.pt` files: un-compress the file and place the `.pt` files under `./data_ttbar/processed/`. 
+2. When you run the training script right after step 1, the training script will fetch the `.npz` files from `./data_ttbar/raw` and produce dataloader from these files, using the functions defined in [`./model/data_loader.py`](https://github.com/DeepMETv2/L1DeepMETv2/blob/master/model/data_loader.py). This dataloader-producing takes some time, so feel free to use the dataloader already produced and saved in [this link](https://cernbox.cern.ch/s/RETpE7fzw4g0lnF). From the link, download `processed.tar.gz` that contains dataloader saved as `.pt` files: un-compress the file and place the `.pt` files under `./data_ttbar/processed/`.
 3. Run the training script `train.py` using the following command:
 ```
 python train.py --data data_ttbar --ckpts ckpts_ttbar
 ```
 If you have done the step 2, the training script will directly fetch the input dataloader from `./data_ttbar/processed/` and save the training & evaluation output to `./ckpts_ttbar`.
 
+
+## Plot performance plots (response and resolution)
+
+```
+python3 plt.py --ckpts [ckpts directory]
+```
