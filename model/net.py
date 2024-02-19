@@ -121,8 +121,8 @@ def metric(weights, particles_vis, genMET, batch):
     # PUPPI MET using PUPPI weights
     wgt_puppi = particles_vis[:,5]
 
-    puppiMETx = scatter_add(wgt_puppi*px, batch)
-    puppiMETy = scatter_add(wgt_puppi*px, batch)
+    puppiMETx = (-1)*scatter_add(wgt_puppi*px, batch)
+    puppiMETy = (-1)*scatter_add(wgt_puppi*py, batch)
    
     v_puppiMET = torch.stack((puppiMETx, puppiMETy),dim=1)
 
