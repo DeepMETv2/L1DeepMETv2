@@ -85,8 +85,8 @@ def loss_fn_response_tune(weights, particles_vis, genMET, batch, c = 5000):
     # response = getdot( v_true, v_regressed ) / getdot( v_true, v_true )
     response = getscale(v_regressed) / getscale(v_true)
 
-    pT_thres = 0.         # calculate response only taking into account for events with genMET above threshold
-    #pT_thres = 50.
+    #pT_thres = 0.         # calculate response only taking into account for events with genMET above threshold
+    pT_thres = 50.
     resp_pos = torch.logical_and(response > 1., getscale(v_true) > pT_thres)
     resp_neg = torch.logical_and(response < 1., getscale(v_true) > pT_thres)
 
@@ -142,9 +142,9 @@ def metric(weights, particles_vis, genMET, batch):
     
     # gen MET, regressed MET, and PUPPI MET
     METs = {
-        'genMETx': getscale(qTx).cpu().detach().numpy(),
-        'genMETy': getscale(qTy).cpu().detach().numpy(),
-        'genMET': getscale(v_qT).cpu().detach().numpy(),
+        'genMETx': torch.sqrt(qTx**2).cpu().detach().numpy(),
+        'genMETy': torch.sqrt(qTy**2).cpu().detach().numpy(),
+        'genMET': torch.sqrt(qTx**2 + qTy**2).cpu().detach().numpy(),
         
         'METx': getscale(METx).cpu().detach().numpy(),
         'METy': getscale(METy).cpu().detach().numpy(),
