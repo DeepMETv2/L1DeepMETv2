@@ -89,7 +89,7 @@ def loss_fn_response_tune(weights, particles_vis, genMET, batch, c = 5000):
     pT_thres = 50.
     resp_pos = torch.logical_and(response > 1., getscale(v_true) > pT_thres)
     resp_neg = torch.logical_and(response < 1., getscale(v_true) > pT_thres)
-
+    
     response_term = c * (torch.sum(1 - response[resp_neg]) + torch.sum(response[resp_pos] - 1))
 
     loss += response_term
@@ -142,16 +142,16 @@ def metric(weights, particles_vis, genMET, batch):
     
     # gen MET, regressed MET, and PUPPI MET
     METs = {
-        'genMETx': torch.sqrt(qTx**2).cpu().detach().numpy(),
-        'genMETy': torch.sqrt(qTy**2).cpu().detach().numpy(),
-        'genMET': torch.sqrt(qTx**2 + qTy**2).cpu().detach().numpy(),
+        'genMETx': qTx.cpu().detach().numpy(),
+        'genMETy': qTy.cpu().detach().numpy(),
+        'genMET': getscale(v_qT).cpu().detach().numpy(),
         
-        'METx': getscale(METx).cpu().detach().numpy(),
-        'METy': getscale(METy).cpu().detach().numpy(),
+        'METx': METx.cpu().detach().numpy(),
+        'METy': METy.cpu().detach().numpy(),
         'MET': getscale(v_MET).cpu().detach().numpy(),
         
-        'puppiMETx': getscale(puppiMETx).cpu().detach().numpy(),
-        'puppiMETy': getscale(puppiMETy).cpu().detach().numpy(),
+        'puppiMETx': puppiMETx.cpu().detach().numpy(),
+        'puppiMETy': puppiMETy.cpu().detach().numpy(),
         'puppiMET': getscale(v_puppiMET).cpu().detach().numpy()
     }
 
