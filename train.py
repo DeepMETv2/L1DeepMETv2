@@ -52,6 +52,8 @@ parser.add_argument('--weight_decay', default=0.001,
 n_features_cont = 6
 n_features_cat = 2
 
+epochs = 100
+
 def train(model, device, optimizer, scheduler, loss_fn, dataloader):
     model.train()
     
@@ -107,7 +109,7 @@ if __name__ == '__main__':
     print('Training dataloader: {}, Test dataloader: {}'.format(len(train_dl), len(test_dl)))
     
     # gpu
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(2)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # norm for the input data
@@ -131,8 +133,8 @@ if __name__ == '__main__':
     deltaR_dz = 0.3 # not used
 
     # loss function
-    loss_fn = net.loss_fn   # without response correction
-    # loss_fn = net.loss_fn_response_tune
+    #loss_fn = net.loss_fn   # without response correction
+    loss_fn = net.loss_fn_response_tune
     
     metrics = net.metrics
     
@@ -176,7 +178,7 @@ if __name__ == '__main__':
         # torch.save(model, f'{model_dir}/MODELS/model_epoch{epoch}.pt')
 
         # Evaluate for one epoch on validation set
-        test_metrics, resolution_hists, MET_arr = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir, epoch, save_METarr = True)
+        test_metrics, resolutions, MET_arr = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir, epoch, save_METarr = True)
         # test_metrics, resolution_hists, MET_arr = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir, epoch, save_METarr = False)
 
         validation_loss = test_metrics['loss']

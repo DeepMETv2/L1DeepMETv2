@@ -167,9 +167,6 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         R_hist=[]
 
         for i in range(1, len(bin_edges)):
-            print(f'Bin {i} at bin {qT_hist[i]} GeV: ')
-            print(np.where(inds==i)[0])
-            print(qT_arr[np.where(inds==i)[0]])
             R_i=abs(R_arr[np.where(inds==i)[0]])
             R_hist.append(np.mean(R_i))
             
