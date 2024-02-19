@@ -90,9 +90,6 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader):
     scheduler.step(np.mean(loss_avg_arr))
     print('Training epoch: {:02d}, MSE: {:.4f}'.format(epoch, np.mean(loss_avg_arr)))
 
-    model_dir = osp.join(ckpts)
-    os.system('mkdir -p {}/MODELS'.format(model_dir))
-
     return np.mean(loss_avg_arr)
 
 
