@@ -48,7 +48,7 @@ parser.add_argument('--weight_decay', default=0.001,
 n_features_cont = 6
 n_features_cat = 2
 
-def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir, epoch):
+def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir, epoch, save_METarr = False):
     """Evaluate the model on `num_steps` batches.
 
     Args:
@@ -63,20 +63,27 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
 
     # summary for current eval loop
     loss_avg_arr = []
-    true_px_arr, true_py_arr, METx_arr, METy_arr = [], [], [], []
-    
-    
     qT_arr = []
-    #has_deepmet = False
+    
+    MET_arr = {
+        'genMETx': [],
+        'genMETy': [],
+        
+        'METx': [],
+        'METy': [],
+        
+        'puppiMETx': [],
+        'puppiMETy': []
+    }
+    
     resolutions_arr = {
         'MET':      [[],[],[]],
-    #    'pfMET':    [[],[],[]],
-    #    'puppiMET': [[],[],[]],
+        'puppiMET': [[],[],[]],
     }
 
     colors = {
     #    'pfMET': 'black',
-    #    'puppiMET': 'red',
+        'puppiMET': 'red',
     #    'deepMETResponse': 'blue',
     #    'deepMETResolution': 'green',
         'MET':  'magenta',
@@ -84,34 +91,25 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
 
     labels = {
     #    'pfMET': 'PF MET',
-    #    'puppiMET': 'PUPPI MET',
+        'puppiMET': 'PUPPI MET',
     #    'deepMETResponse': 'DeepMETResponse',
     #    'deepMETResolution': 'DeepMETResolution',
         'MET': 'DeepMETv2'
     }
 
-# compute metrics over the dataset
+    # compute metrics over the dataset
     for data in dataloader:
-
-        '''
-        has_deepmet = (data.y.size()[1] > 6)
-        
-        if has_deepmet == True and 'deepMETResponse' not in resolutions_arr.keys():
-            resolutions_arr.update({
-                'deepMETResponse': [[],[],[]],
-                'deepMETResolution': [[],[],[]]
-            })
-        '''
-
         data = data.to(device)
+        
         #x_cont = data.x[:,:(n_features_cont-1)] #remove puppi
         x_cont = data.x[:,:n_features_cont] #include puppi
         x_cat = data.x[:,n_features_cont:].long()
+        
         #phi = torch.atan2(data.x[:,2], data.x[:,1])   # atan2(py, px)
         etaphi = torch.cat([data.x[:,3][:,None], data.x[:,4][:,None]], dim=1)
 
         # NB: there is a problem right now for comparing hits at the +/- pi boundary 
-        edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=True, max_num_neighbors=255)
+        edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=False, max_num_neighbors=255)
         result = model(x_cont, x_cat, edge_index, data.batch)
 
         #add dz connection
@@ -123,38 +121,34 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         #toc = time.time()
         #print('Event processing speed', toc - tic)
 
-        loss, true_px, true_py, METx, METy = loss_fn(result, data.x, data.y, data.batch)
-        
-        true_px_arr.append(true_px.cpu().numpy())
-        true_py_arr.append(true_py.cpu().numpy())
-        METx_arr.append(METx.detach().cpu().numpy())
-        METy_arr.append(METy.detach().cpu().numpy())
+        loss = loss_fn(result, data.x, data.y, data.batch)
 
         # compute all metrics on this batch
-        resolutions, qT= metrics['resolution'](result, data.x, data.y, data.batch)
-        for key in resolutions_arr:
+        resolutions, METs = metrics['resolution'](result, data.x, data.y, data.batch)
+        
+        for key in resolutions_arr.keys():
             for i in range(len(resolutions_arr[key])):
                 resolutions_arr[key][i]=np.concatenate((resolutions_arr[key][i],resolutions[key][i]))
-        qT_arr=np.concatenate((qT_arr,qT))
+
+        for key in MET_arr.keys():
+            MET_arr[key]=np.concatenate((MET_arr[key],METs[key]))
+            
+        qT_arr = np.concatenate((qT_arr, METs['genMET']))
+        
         loss_avg_arr.append(loss.item())
     
-            
-    true_px_list = np.concatenate(true_px_arr).ravel()
-    true_py_list = np.concatenate(true_py_arr).ravel()
-    METx_list = np.concatenate(METx_arr).ravel()
-    METy_list = np.concatenate(METy_arr).ravel()
-        
-    np.savetxt('{}/epoch{}_true_px.txt'.format(model_dir, epoch), true_px_list, delimiter=',')
-    np.savetxt('{}/epoch{}_true_py.txt'.format(model_dir, epoch), true_py_list, delimiter=',')
-    np.savetxt('{}/epoch{}_METx.txt'.format(model_dir, epoch), METx_list, delimiter=',')
-    np.savetxt('{}/epoch{}_METy.txt'.format(model_dir, epoch), METy_list, delimiter=',')
-
+    if save_METarr:
+        for key in MET_arr.keys():
+            np.savetxt(f'{model_dir}/epoch{epoch}_{key}.txt', MET_arr[key].ravel(), delimiter = ',')
+    
     # compute mean of all metrics in summary
     max_x=400 # max qT value
-    x_n=40 #number of bins
+    x_n=20 # number of bins
 
-    bin_edges=np.arange(0, max_x, 10)
-    inds=np.digitize(qT_arr,bin_edges)
+    bin_edges=np.arange(0, max_x, max_x/x_n)
+    
+    inds=np.digitize(qT_arr, bin_edges)
+
     qT_hist=[]
     for i in range(1, len(bin_edges)):
         qT_hist.append((bin_edges[i]+bin_edges[i-1])/2.)
@@ -173,27 +167,17 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         R_hist=[]
 
         for i in range(1, len(bin_edges)):
-            #print('R_arr')
-            #print(R_arr)
-            #print('len(R_arr)')
-            #print(len(R_arr))
+            print(f'Bin {i} at bin {qT_hist[i]} GeV: ')
+            print(np.where(inds==i)[0])
+            print(qT_arr[np.where(inds==i)[0]])
             R_i=abs(R_arr[np.where(inds==i)[0]])
-            #print('R_i')
-            #print(R_i)
-            #print('len(R_i)')
-            #print(len(R_i))
             R_hist.append(np.mean(R_i))
-            #print('np.mean(R_i)')
-            #print(np.mean(R_i))
-
-            #print('u_perp_arr')
-            #print(u_perp_arr)
+            
             u_perp_i=u_perp_arr[np.where(inds==i)[0]]
-            #print('u_perp_i')
-            #print(u_perp_i)
             u_perp_scaled_i=u_perp_i/np.mean(R_i)
             u_perp_hist.append((np.quantile(u_perp_i,0.84)-np.quantile(u_perp_i,0.16))/2.)
             u_perp_scaled_hist.append((np.quantile(u_perp_scaled_i,0.84)-np.quantile(u_perp_scaled_i,0.16))/2.)
+            
             u_par_i=u_par_arr[np.where(inds==i)[0]]
             u_par_scaled_i=u_par_i/np.mean(R_i)
             u_par_hist.append((np.quantile(u_par_i,0.84)-np.quantile(u_par_i,0.16))/2.)
@@ -220,9 +204,10 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
                                 for k, v in metrics_mean.items())
     print("- Eval metrics : " + metrics_string)
     
-    return metrics_mean, resolution_hists
+    return metrics_mean, resolution_hists, MET_arr
     #return metrics_mean
 
+    
 if __name__ == '__main__':
     """
         Evaluate the model on the test set.
@@ -240,7 +225,7 @@ if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = net.Net(n_features_cont, n_features_cat).to(device) #include puppi
     #model = net.Net(n_features_cont-1, n_features_cat).to(device) #remove puppi
-    #optimizer = torch.optim.AdamW(model.parameters(),lr=0.001)
+    
     #scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.5, threshold=0.05)
     optimizer = torch.optim.AdamW(model.parameters(),lr=float(args.lr), weight_decay=float(args.weight_decay))
     scheduler = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr = 1e-4, max_lr = 1e-3)
@@ -258,11 +243,11 @@ if __name__ == '__main__':
     epoch = ckpt['epoch']
     #utils.load_checkpoint(os.path.join(model_dir, args.restore_file + '.pth.tar'), model)
     with open(osp.join(model_dir, 'metrics_val_best.json')) as restore_metrics:
-            best_validation_loss = json.load(restore_metrics)['loss']
+        best_validation_loss = json.load(restore_metrics)['loss']
 
     # Evaluate
-    #test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
-    test_metrics, resolutions = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir, epoch)
+    test_metrics = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir)
+                            
     validation_loss = test_metrics['loss']
     is_best = (validation_loss<best_validation_loss)
     if is_best: 
@@ -278,5 +263,3 @@ if __name__ == '__main__':
         # Save best val metrics in a json file in the model directory
         utils.save_dict_to_json(test_metrics, osp.join(model_dir, 'metrics_val_best.json'))
         utils.save(resolutions, osp.join(model_dir, 'best.resolutions'))
-
-   # utils.save(resolutions, os.path.join(model_dir, "{}.resolutions".format(args.restore_file)))

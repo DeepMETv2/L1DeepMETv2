@@ -16,37 +16,10 @@ Change from DeepMETv2
 
 '''
 
-#class Net(nn.Module):
-#    def __init__(self):
-#        super(Net, self).__init__()
-#        self.drn = DynamicReductionNetwork(input_dim=11, hidden_dim=64,
-#                                           k = 8,
-#                                           output_dim=2, aggr='max',
-#                                           norm=torch.tensor([1./2950.0,         #px
-#                                                              1./2950.0,         #py
-#                                                              1./2950.0,         #pt
-#                                                              1./5.265625,       #eta
-#                                                              1./143.875,        #d0
-#                                                              1./589.,           #dz
-#                                                              1./1.2050781,      #mass
-#                                                              1./211.,           #pdgId
-#                                                              1.,                #charge
-#                                                              1./7.,             #fromPV
-#                                                              1.                 #puppiWeight
-#                                                          ]))
-#    def forward(self, data):
-#        output = self.drn(data)
-#        met    = nn.Softplus()(output[:,0]).unsqueeze(1)
-#        metphi = math.pi*(2*torch.sigmoid(output[:,1]) - 1).unsqueeze(1)
-#        output = torch.cat((met, metphi), 1)  
-#        return output
-
 class Net(nn.Module):
     def __init__(self, continuous_dim, categorical_dim, norm):
-    #def __init__(self, continuous_dim, categorical_dim):
         super(Net, self).__init__()
         self.graphnet = GraphMETNetwork(continuous_dim, categorical_dim, norm,
-        #self.graphnet = GraphMETNetwork(continuous_dim, categorical_dim,
                                         output_dim=1, hidden_dim=32,
                                         conv_depth=2)
     
@@ -54,203 +27,105 @@ class Net(nn.Module):
         weights = self.graphnet(x_cont, x_cat, edge_index, batch)
         return torch.sigmoid(weights)
 
-def loss_fn(weights, prediction, truth, batch):
-    px=prediction[:,0]
-    py=prediction[:,1]
-   
-    # shift the distribution so that its minimum value is at 0 and then scale it so that its maximum value is at 1
-    #genMETx_min = -747.168
-    #genMETx_max = 966.450
-    #genMETy_min = -932.410
-    #genMETy_max = 811.353
-
-    #true_px = truth[:,0]
-    #true_py = truth[:,1]
-
-    #torch.add(true_px, (-1)*genMETx_min)
-    #torch.add(true_py, (-1)*genMETy_min)
-
-    #true_px /= genMETx_max
-    #true_py /= genMETy_max
-
-
-    true_px=truth[:,0]
-    true_py=truth[:,1]
-    #true_px=truth[:,0]/1000.
-    #true_py=truth[:,1]/1000.
-
-    #true_px=truth[:,0] 
-    #true_py=truth[:,1]
-    #print('HT', truth[:,10])
-    METx = scatter_add(weights*px, batch)
-    METy = scatter_add(weights*py, batch)
-    #tzero = torch.zeros(prediction.shape[0]).to('cuda')
-    #BCE = nn.BCELoss()
-    #prediction[:,]: pX,pY,pT,eta,d0,dz,mass,puppiWeight,pdgId,charge,fromPV
-    loss=0.5*( ( METx + true_px)**2 + ( METy + true_py)**2 ).mean() 
-    #+ 5000*BCE(torch.where(prediction[:,9]==0, tzero, weights), torch.where(prediction[:,9]==0, tzero, prediction[:,7]))
-    
-    return loss
-
-
-def loss_fn_compare(weights, prediction, truth, batch):
-    px=prediction[:,0]
-    py=prediction[:,1]
-   
-    # shift the distribution so that its minimum value is at 0 and then scale it so that its maximum value is at 1
-    #genMETx_min = -747.168
-    #genMETx_max = 966.450
-    #genMETy_min = -932.410
-    #genMETy_max = 811.353
-
-    #true_px = truth[:,0]
-    #true_py = truth[:,1]
-
-    #torch.add(true_px, (-1)*genMETx_min)
-    #torch.add(true_py, (-1)*genMETy_min)
-
-    #true_px /= genMETx_max
-    #true_py /= genMETy_max
-
-
-    #true_px=truth[:,0]
-    #true_py=truth[:,1]
-    true_px=truth[:,0]/1000.
-    true_py=truth[:,1]/1000.
-
-    #true_px=truth[:,0] 
-    #true_py=truth[:,1]
-    #print('HT', truth[:,10])
-    METx = scatter_add(weights*px, batch)/1000.
-    METy = scatter_add(weights*py, batch)/1000.
-    #tzero = torch.zeros(prediction.shape[0]).to('cuda')
-    #BCE = nn.BCELoss()
-    #prediction[:,]: pX,pY,pT,eta,d0,dz,mass,puppiWeight,pdgId,charge,fromPV
-    loss=0.5*( ( METx + true_px)**2 + ( METy + true_py)**2 ).mean() 
-    #+ 5000*BCE(torch.where(prediction[:,9]==0, tzero, weights), torch.where(prediction[:,9]==0, tzero, prediction[:,7]))
-    
-    return loss, true_px, true_py, METx, METy
-
-
-def loss_fn_response(weights, prediction, truth, batch, c = 5000):
-    px=prediction[:,0]
-    py=prediction[:,1]
-   
-    true_px=truth[:,0]
-    true_py=truth[:,1]
-    #true_px=truth[:,0]/1000.
-    #true_py=truth[:,1]/1000.
-
-    #print('HT', truth[:,10])
-    METx = scatter_add(weights*px, batch)
-    METy = scatter_add(weights*py, batch)
-    #METx = scatter_add(weights*px, batch)/1000.
-    #METy = scatter_add(weights*py, batch)/1000.
-    
-    loss=0.5*( ( METx + true_px)**2 + ( METy + true_py)**2 ).mean()
-    
-    pT_truth = torch.sqrt( true_px*true_px + true_py*true_py )
-    upar_pred = torch.sqrt( METx*METx + METy*METy ) - pT_truth
-    
-    upar_pred_pos = upar_pred > 0.
-    upar_pred_neg = upar_pred < 0.
-    
-    print('upar_pred_pos', upar_pred_pos)
-    print('upar_pred_neg', upar_pred_neg)
-    
-    norm = torch.sum(pT_truth)
-    
-    print('norm', norm)
-    
-    response_term = c * (torch.sum(upar_pred_pos) - torch.sum(upar_pred_neg))
-    
-    print('response_term before norm', response_term)
-    
-    response_term = response_term/norm 
-    
-    print('response_term after norm', response_term)
-    
-    loss += response_term
-    
-    return loss, true_px, true_py, METx, METy
-
-
+# tensor operations
 def getdot(vx, vy):
     return torch.einsum('bi,bi->b',vx,vy)
+
 def getscale(vx):
     return torch.sqrt(getdot(vx,vx))
+
 def scalermul(a,v):
     return torch.einsum('b,bi->bi',a,v)
 
-def u_perp_par_loss(weights, prediction, truth, batch):
-    qTx=truth[:,0]#*torch.cos(truth[:,1])
-    qTy=truth[:,1]#*torch.sin(truth[:,1])
-    # truth qT
+# loss function without response tune option
+def loss_fn(weights, particles_vis, genMET, batch):
+    # particles_vis: (pT, px, py, eta, phi, puppiWeight, pdgId, charge)
+    # momentum of the visible particles
+    px = particles_vis[:,1]
+    py = particles_vis[:,2]
+ 
+    # gen MET = (px, py) of genMET
+    # uT = (-1)*genMET
+    true_px = (-1)*genMET[:,0]
+    true_py = (-1)*genMET[:,1]
+
+    # regress uT: MET = (-1)*uT
+    # ML weights are [0,1]
+    uTx = scatter_add(weights*px, batch)
+    uTy = scatter_add(weights*py, batch)
+
+    loss=0.5*( ( uTx - true_px)**2 + ( uTy - true_py)**2 ).mean()
+
+    return loss
+
+
+# loss function with response tune
+def loss_fn_response_tune(weights, particles_vis, genMET, batch, c = 5000):
+    # particles_vis: (pT, px, py, eta, phi, puppiWeight, pdgId, charge)
+    # momentum of the visible particles
+    px = particles_vis[:,1]
+    py = particles_vis[:,2]
+ 
+    # gen MET = (px, py) of genMET
+    # uT = (-1)*genMET
+    true_px = (-1)*genMET[:,0]
+    true_py = (-1)*genMET[:,1]
+
+    # regress uT: MET = (-1)*uT
+    # ML weights are [0,1]
+    uTx = scatter_add(weights*px, batch)
+    uTy = scatter_add(weights*py, batch)
+
+    loss=0.5*( ( uTx - true_px)**2 + ( uTy - true_py)**2 ).mean() 
+
+    # response correction
+    v_true = torch.stack((true_px,true_py),dim=1)
+    v_regressed = torch.stack((uTx, uTy),dim=1)
+        
+    # response = getdot( v_true, v_regressed ) / getdot( v_true, v_true )
+    response = getscale(v_regressed) / getscale(v_true)
+
+    pT_thres = 0.         # calculate response only taking into account for events with genMET above threshold
+    #pT_thres = 50.
+    resp_pos = torch.logical_and(response > 1., getscale(v_true) > pT_thres)
+    resp_neg = torch.logical_and(response < 1., getscale(v_true) > pT_thres)
+
+    response_term = c * (torch.sum(1 - response[resp_neg]) + torch.sum(response[resp_pos] - 1))
+
+    loss += response_term
+
+    return loss
+
+# calculate performance metrics
+def metric(weights, particles_vis, genMET, batch):
+    # qT is the genMET
+    qTx = genMET[:,0]
+    qTy = genMET[:,1]
+
     v_qT=torch.stack((qTx,qTy),dim=1)
 
-    px=prediction[:,0]
-    py=prediction[:,1]
-    METx = -scatter_add(weights*px, batch)
-    METy = -scatter_add(weights*py, batch)
-    # predicted MET/qT
-    vector = torch.stack((METx, METy),dim=1)
+    # momentum of visible particles
+    px = particles_vis[:,1]
+    py = particles_vis[:,2]
 
-    response = getdot(vector,v_qT)/getdot(v_qT,v_qT)
-    v_paral_predict = scalermul(response, v_qT)
-    u_paral_predict = getscale(v_paral_predict)-getscale(v_qT)
-    v_perp_predict = vector - v_paral_predict
-    u_perp_predict = getscale(v_perp_predict)
-    
-    return 0.5*(u_paral_predict**2 + u_perp_predict**2).mean()
-    
-def resolution(weights, prediction, truth, batch):
-    
-    def getdot(vx, vy):
-        return torch.einsum('bi,bi->b',vx,vy)
-    def getscale(vx):
-        return torch.sqrt(getdot(vx,vx))
-    def scalermul(a,v):
-        return torch.einsum('b,bi->bi',a,v)    
+    # regressed uT: momentum of the system of all visible particles
+    uTx = scatter_add(weights*px, batch)
+    uTy = scatter_add(weights*py, batch)
 
-    qTx=truth[:,0]#*torch.cos(truth[:,1])
-    qTy=truth[:,1]#*torch.sin(truth[:,1])
-    # truth qT
-    v_qT=torch.stack((qTx,qTy),dim=1)
+    # regressed MET
+    METx = (-1) * uTx
+    METy = (-1) * uTy
 
-    #pfMETx=truth[:,2]#*torch.cos(truth[:,3])
-    #pfMETy=truth[:,3]#*torch.sin(truth[:,3])
-    # PF MET
-    #v_pfMET=torch.stack((pfMETx, pfMETy),dim=1)
-
-    #puppiMETx=truth[:,4]#*torch.cos(truth[:,5])
-    #puppiMETy=truth[:,5]#*torch.sin(truth[:,5])
-    # PF MET                                                                                                                                                            
-    #v_puppiMET=torch.stack((puppiMETx, puppiMETy),dim=1)
-
-    '''
-    has_deepmet = False
-    if truth.size()[1] > 6:
-        has_deepmet = True
-        deepMETResponse_x=truth[:,6]#*torch.cos(truth[:,7])
-        deepMETResponse_y=truth[:,7]#*torch.sin(truth[:,7])
-        # DeepMET Response Tune
-        v_deepMETResponse=torch.stack((deepMETResponse_x, deepMETResponse_y),dim=1)
-    
-        deepMETResolution_x=truth[:,8]#*torch.cos(truth[:,9])
-        deepMETResolution_y=truth[:,9]#*torch.sin(truth[:,9])
-        # DeepMET Resolution Tune
-        v_deepMETResolution=torch.stack((deepMETResolution_x, deepMETResolution_y),dim=1)
-    '''
-
-    px=prediction[:,0]
-    py=prediction[:,1]
-    #weights = torch.where( prediction[:,9] == 10, weights , prediction[:,7] )
-    METx = scatter_add(weights*px, batch)
-    METy = scatter_add(weights*py, batch)
-    # predicted MET/qT
     v_MET=torch.stack((METx, METy),dim=1)
-    
-    
+
+    # PUPPI MET using PUPPI weights
+    wgt_puppi = particles_vis[:,5]
+
+    puppiMETx = scatter_add(wgt_puppi*px, batch)
+    puppiMETy = scatter_add(wgt_puppi*px, batch)
+   
+    v_puppiMET = torch.stack((puppiMETx, puppiMETy),dim=1)
+
     def compute(vector):
         response = getdot(vector,v_qT)/getdot(v_qT,v_qT)
         v_paral_predict = scalermul(response, v_qT)
@@ -259,20 +134,30 @@ def resolution(weights, prediction, truth, batch):
         u_perp_predict = getscale(v_perp_predict)
         return [u_perp_predict.cpu().detach().numpy(), u_paral_predict.cpu().detach().numpy(), response.cpu().detach().numpy()]
 
-    resolutions= {
-        'MET':      compute(-v_MET),
-        #'MET':      compute(-v_MET),
-        #'pfMET':    compute(v_pfMET),
-        #'puppiMET': compute(v_puppiMET)
+    resolutions = {
+        'MET':      compute(v_MET),
+        'puppiMET': compute(v_puppiMET)
     }
-    #if has_deepmet:
-    #    resolutions.update({
-    #        'deepMETResponse':   compute(v_deepMETResponse),
-    #        'deepMETResolution': compute(v_deepMETResolution)
-    #    })
-    return resolutions, torch.sqrt(truth[:,0]**2+truth[:,1]**2).cpu().detach().numpy()
+
+    
+    # gen MET, regressed MET, and PUPPI MET
+    METs = {
+        'genMETx': getscale(qTx).cpu().detach().numpy(),
+        'genMETy': getscale(qTy).cpu().detach().numpy(),
+        'genMET': getscale(v_qT).cpu().detach().numpy(),
+        
+        'METx': getscale(METx).cpu().detach().numpy(),
+        'METy': getscale(METy).cpu().detach().numpy(),
+        'MET': getscale(v_MET).cpu().detach().numpy(),
+        
+        'puppiMETx': getscale(puppiMETx).cpu().detach().numpy(),
+        'puppiMETy': getscale(puppiMETy).cpu().detach().numpy(),
+        'puppiMET': getscale(v_puppiMET).cpu().detach().numpy()
+    }
+
+    return resolutions, METs
 
 # maintain all metrics required in this dictionary- these are used in the training and evaluation loops
 metrics = {
-    'resolution': resolution,
+    'resolution': metric
 }
