@@ -91,6 +91,8 @@ def loss_fn_response_tune(weights, particles_vis, genMET, batch, c = 5000, scale
     resp_pos = torch.logical_and(response > 1., getscale(v_true) > pT_thres)
     resp_neg = torch.logical_and(response < 1., getscale(v_true) > pT_thres)
     
+    c = c / scale_momentum
+    
     response_term = c * (torch.sum(1 - response[resp_neg]) + torch.sum(response[resp_pos] - 1))
 
     loss += response_term
