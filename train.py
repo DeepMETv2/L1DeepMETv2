@@ -52,6 +52,8 @@ parser.add_argument('--weight_decay', default=0.001,
 n_features_cont = 6
 n_features_cat = 2
 
+scale_momentum = 128 # scaling factor of pT, px, py (hence the target MET)
+
 epochs = 100
 
 def train(model, device, optimizer, scheduler, loss_fn, dataloader):
@@ -76,7 +78,7 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader):
             edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=False, max_num_neighbors=255)  # turn off self-loop
             result = model(x_cont, x_cat, edge_index, data.batch)
             
-            loss = loss_fn(result, data.x, data.y, data.batch)
+            loss = loss_fn(result, data.x, data.y, data.batch, scale_momentum)
             loss.backward()
             optimizer.step()
             
@@ -110,8 +112,7 @@ if __name__ == '__main__':
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     # norm for the input data
-    norm = torch.tensor([1., 1., 1., 1., 1., 1.]).to(device)
-    #norm = torch.tensor([1./1000., 1./1000., 1./1000., 1., 1., 1.]).to(device)   # pt, px, py: match it to genMETx genMETx scale factor
+    norm = torch.tensor([1./scale_momentum, 1./scale_momentum, 1./scale_momentum, 1., 1., 1.]).to(device)   # pt, px, py: scale by 128
  
     # model
     model = net.Net(n_features_cont, n_features_cat, norm).to(device) #include puppi

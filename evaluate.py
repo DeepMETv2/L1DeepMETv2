@@ -48,7 +48,9 @@ parser.add_argument('--weight_decay', default=0.001,
 n_features_cont = 6
 n_features_cat = 2
 
-def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir, epoch, save_METarr = False):
+scale_momentum = 128
+
+def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, model_dir, epoch, n_features_cont = 6, save_METarr = False, removePuppi = False):
     """Evaluate the model on `num_steps` batches.
 
     Args:
@@ -97,12 +99,35 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         'MET': 'DeepMETv2'
     }
 
+    weights_pdgId_arr = {
+        'down': [],
+        'up': [],
+        'electron': [],
+        'muon': [],
+        'photon': [],
+        'kaon': [],
+        'pion': [],
+    }
+    
+    puppi_weights_pdgId_arr = {
+        'down': [],
+        'up': [],
+        'electron': [],
+        'muon': [],
+        'photon': [],
+        'kaon': [],
+        'pion': [],
+    }
+    
     # compute metrics over the dataset
     for data in dataloader:
         data = data.to(device)
         
-        #x_cont = data.x[:,:(n_features_cont-1)] #remove puppi
-        x_cont = data.x[:,:n_features_cont] #include puppi
+        if removePuppi:
+            x_cont = data.x[:,:(n_features_cont-1)]
+        else:
+            x_cont = data.x[:,:n_features_cont]
+        
         x_cat = data.x[:,n_features_cont:].long()
         
         #phi = torch.atan2(data.x[:,2], data.x[:,1])   # atan2(py, px)
@@ -121,10 +146,10 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         #toc = time.time()
         #print('Event processing speed', toc - tic)
 
-        loss = loss_fn(result, data.x, data.y, data.batch)
+        loss = loss_fn(result, data.x, data.y, data.batch, scale_momentum)
 
         # compute all metrics on this batch
-        resolutions, METs = metrics['resolution'](result, data.x, data.y, data.batch)
+        resolutions, METs, weights_pdgId, puppi_weights_pdgId = metrics['resolution'](result, data.x, data.y, data.batch, scale_momentum)
         
         for key in resolutions_arr.keys():
             for i in range(len(resolutions_arr[key])):
@@ -133,6 +158,10 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         for key in MET_arr.keys():
             MET_arr[key]=np.concatenate((MET_arr[key],METs[key]))
             
+        for pdg in weights_pdgId_arr.keys():
+            weights_pdgId_arr[pdg] = np.concatenate((weights_pdgId_arr[pdg],weights_pdgId[pdg]))
+            puppi_weights_pdgId_arr[pdg] = np.concatenate((puppi_weights_pdgId_arr[pdg],puppi_weights_pdgId[pdg]))
+            
         qT_arr = np.concatenate((qT_arr, METs['genMET']))
         
         loss_avg_arr.append(loss.item())
@@ -140,6 +169,8 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
     if save_METarr:
         for key in MET_arr.keys():
             np.savetxt(f'{model_dir}/epoch{epoch}_{key}.txt', MET_arr[key].ravel(), delimiter = ',')
+        for pdg in weights_pdgId_arr.keys():
+            np.savetxt(f'{model_dir}/epoch{epoch}_{pdg}_weights.txt', weights_pdgId_arr[pdg].ravel(), delimiter = ',')
     
     # compute mean of all metrics in summary
     max_x=400 # max qT value
