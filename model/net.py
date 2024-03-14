@@ -253,13 +253,13 @@ def metric(weights, particles_vis, genMET, batch, scale_momentum = 1.):
     }
 
     
-    mask_down = torch.abs(particles_vis[:,6] == 1)
-    mask_up = torch.abs(particles_vis[:,6] == 2)
-    mask_electron = torch.abs(particles_vis[:,6] == 11)
-    mask_muon = torch.abs(particles_vis[:,6] == 13)
-    mask_photon = torch.abs(particles_vis[:,6] == 22)
-    mask_kaon_zero = torch.abs(particles_vis[:,6] == 130)
-    mask_pion_charged = torch.abs(particles_vis[:,6] == 211)
+    mask_down = torch.abs(particles_vis[:,6]) == 1
+    mask_up = torch.abs(particles_vis[:,6]) == 2
+    mask_electron = torch.abs(particles_vis[:,6]) == 11
+    mask_muon = torch.abs(particles_vis[:,6]) == 13
+    mask_photon = torch.abs(particles_vis[:,6]) == 22
+    mask_kaon_zero = torch.abs(particles_vis[:,6]) == 130
+    mask_pion_charged = torch.abs(particles_vis[:,6]) == 211
     
     weights = {
         'down': weights[mask_down].detach().cpu().numpy(),
