@@ -50,6 +50,16 @@ python train.py --data data_ttbar --ckpts ckpts_ttbar
 If you have done the step 2, the training script will directly fetch the input dataloader from `./data_ttbar/processed/` and save the training & evaluation output to `./ckpts_ttbar`.
 
 
+## Access the train dataloader and test dataloader
+
+dataloader saved as `.pt` files in `data_ttbar` is not split into training and test set. What is done at the training/evaluating code is that it splits the full dataloader into 8:2 training-test set on the fly. 
+
+The training dataloader and test dataloader with 8:2 split that can be directly used can be downloaded [here](https://cernbox.cern.ch/s/oNs7GNCOi7ZX7ak) 
+Once you download them, you can use them in your training/evaluating code as the following:
+```
+test_dl = torch.load('dataloader/test_dataloader.pth')
+```
+
 ## Plot performance plots (response and resolution)
 
 ```
