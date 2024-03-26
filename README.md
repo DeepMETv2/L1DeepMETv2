@@ -10,6 +10,7 @@ This work extends the following efforts for MET reconstruction algorithms:
 
 ## Prerequisites 
 
+```
 conda install cudatoolkit=10.2
 conda install -c pytorch pytorch=1.12.0
 export CUDA="cu102"
@@ -20,7 +21,7 @@ pip install torch-spline-conv -f https://pytorch-geometric.com/whl/torch-1.12.0+
 pip install torch-geometric
 pip install coffea
 pip install mplhep
-
+```
 
 ## Produce Input Data
 
