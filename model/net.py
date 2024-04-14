@@ -26,8 +26,9 @@ class Net(nn.Module):
     
     def forward(self, x_cont, x_cat, edge_index, batch):
         weights = self.graphnet(x_cont, x_cat, edge_index, batch)
+        relu_layer = nn.ReLU()
+        return relu_layer(weights)
         #return torch.sigmoid(weights)
-        return F.relu(weights)
 
 # tensor operations
 def getdot(vx, vy):
