@@ -22,7 +22,7 @@ class Net(nn.Module):
         
         self.graphnet = GraphMETNetwork(continuous_dim, categorical_dim, norm,
                                         output_dim=1, hidden_dim=32,
-                                        conv_depth=4)
+                                        conv_depth=2)
     
     def forward(self, x_cont, x_cat, edge_index, batch):
         weights = self.graphnet(x_cont, x_cat, edge_index, batch)
