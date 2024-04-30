@@ -78,7 +78,7 @@ def train(model, device, optimizer, scheduler, loss_fn, dataloader):
             edge_index = radius_graph(etaphi, r=deltaR, batch=data.batch, loop=False, max_num_neighbors=255)  # turn off self-loop
             result = model(x_cont, x_cat, edge_index, data.batch)
             
-            loss = loss_fn(result, data.x, data.y, data.batch, scale_momentum)
+            loss = loss_fn(result, data.x, data.y, data.batch)
             loss.backward()
             optimizer.step()
             
@@ -171,9 +171,9 @@ if __name__ == '__main__':
                                 checkpoint=model_dir)
 
         # save model
-        # m = torch.jit.script(model)
-        # torch.jit.save(m, f'{model_dir}/MODELS/scripted_model_epoch{epoch}.pt')
-        # torch.save(model, f'{model_dir}/MODELS/model_epoch{epoch}.pt')
+        m = torch.jit.script(model)
+        torch.jit.save(m, f'{model_dir}/MODELS/scripted_model_epoch{epoch}.pt')
+        torch.save(model, f'{model_dir}/MODELS/model_epoch{epoch}.pt')
 
         # Evaluate for one epoch on validation set
         test_metrics, resolutions, MET_arr = evaluate(model, device, loss_fn, test_dl, metrics, deltaR, deltaR_dz, model_dir, epoch, save_METarr = True)

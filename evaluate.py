@@ -146,7 +146,7 @@ def evaluate(model, device, loss_fn, dataloader, metrics, deltaR, deltaR_dz, mod
         #toc = time.time()
         #print('Event processing speed', toc - tic)
 
-        loss = loss_fn(result, data.x, data.y, data.batch, scale_momentum)
+        loss = loss_fn(result, data.x, data.y, data.batch)
 
         # compute all metrics on this batch
         resolutions, METs, weights_pdgId, puppi_weights_pdgId = metrics['resolution'](result, data.x, data.y, data.batch, scale_momentum)
